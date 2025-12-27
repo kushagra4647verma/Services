@@ -8,7 +8,17 @@ services:
     env_file: .env
     depends_on:
       - restaurant-service
+      - beverage-service
+      - event-service
 
   restaurant-service:
     build: ./services/restaurant
+    env_file: .env
+
+  beverage-service:
+    build: ./services/beverage
+    env_file: .env
+
+  event-service:
+    build: ./services/event
     env_file: .env
