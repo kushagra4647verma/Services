@@ -17,3 +17,5 @@ export function authenticate(req, res, next) {
     res.sendStatus(401)
   }
 }
+
+//we can avoid this i think

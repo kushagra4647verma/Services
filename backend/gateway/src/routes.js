@@ -4,7 +4,8 @@ import { authenticate } from "./authMiddleware.js"
 
 const router = express.Router()
 
-const restaurantService = proxy("http://restaurant-service:4001", {
+const restaurantService = proxy("http://restaurant-service:4001", { //service name in docker-compose
+  //4001 port is for restro microservice
   proxyReqPathResolver: req => req.originalUrl
 })
 

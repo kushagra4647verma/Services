@@ -4,6 +4,7 @@ import { supabase } from "../db.js"
  * GET /restaurants/me
  */
 export async function getMyRestaurants(req, res) {
+  console.log("request body in get restaurants:", req);  //testing
   const ownerId = req.user.sub
 
   const { data, error } = await supabase
@@ -35,6 +36,7 @@ export async function createRestaurant(req, res) {
  * GET /restaurants/:restaurantId
  */
 export async function getRestaurant(req, res) {
+    console.log("request body in get 1 restaurant:", req);  //testing
   const { restaurantId } = req.params
 
   const { data, error } = await supabase
@@ -51,6 +53,7 @@ export async function getRestaurant(req, res) {
  * PATCH /restaurants/:restaurantId
  */
 export async function updateRestaurant(req, res) {
+  
   const { restaurantId } = req.params
 
   const { data, error } = await supabase
