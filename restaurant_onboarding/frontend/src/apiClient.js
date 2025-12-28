@@ -1,15 +1,19 @@
 import { supabase } from "./supabaseClient"
 
-export async function apiFetch(url, options = {}) {
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+if (!BASE_URL) {
+  throw new Error("VITE_API_BASE_URL is not defined")
+}
+
+export async function apiFetch(path, options = {}) {
   const {
     data: { session }
   } = await supabase.auth.getSession()
 
-  if (!session) {
-    throw new Error("Not authenticated")
-  }
+  if (!session) throw new Error("Not authenticated")
 
-  return fetch(url, {
+  return fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       ...options.headers,

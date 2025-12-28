@@ -1,0 +1,79 @@
+import { useEffect, useState } from "react"
+import {
+  getBeverages,
+  createBeverage,
+  deleteBeverage,
+  updateBeverage
+} from "../../api/beverages"
+import BeverageForm from "./BeverageForm"
+
+export default function BeverageList({ restaurantId }) {
+  const [items, setItems] = useState([])
+  const [editingId, setEditingId] = useState(null)
+  const [editName, setEditName] = useState("")
+
+  useEffect(() => {
+    getBeverages(restaurantId).then(setItems)
+  }, [restaurantId])
+
+  async function handleDelete(id) {
+    if (!window.confirm("Delete beverage?")) return
+    await deleteBeverage(id)
+    setItems(items.filter(i => i.id !== id))
+  }
+
+  function startEdit(beverage) {
+    setEditingId(beverage.id)
+    setEditName(beverage.name)
+  }
+
+  async function saveEdit(beverageId) {
+    const updated = await updateBeverage(beverageId, {
+      name: editName
+    })
+
+    setItems(items.map(b =>
+      b.id === beverageId ? updated : b
+    ))
+
+    setEditingId(null)
+    setEditName("")
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditName("")
+  }
+
+  return (
+    <>
+      <h3>Beverages</h3>
+
+      <BeverageForm
+        restaurantId={restaurantId}
+        onCreate={b => setItems([...items, b])}
+      />
+
+      {items.map(b => (
+        <div key={b.id}>
+          {editingId === b.id ? (
+            <>
+              <input
+                value={editName}
+                onChange={e => setEditName(e.target.value)}
+              />
+              <button onClick={() => saveEdit(b.id)}>Save</button>
+              <button onClick={cancelEdit}>Cancel</button>
+            </>
+          ) : (
+            <>
+              {b.name}
+              <button onClick={() => startEdit(b)}>Edit</button>
+              <button onClick={() => handleDelete(b.id)}>Delete</button>
+            </>
+          )}
+        </div>
+      ))}
+    </>
+  )
+}

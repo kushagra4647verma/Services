@@ -1,67 +1,73 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "./supabaseClient"
+import Login from "./components/auth/Login"
+import RestaurantList from "./components/restaurants/RestaurantList"
+import RestaurantForm from "./components/restaurants/RestaurantForm"
+import RestaurantDetail from "./components/restaurants/RestaurantDetail"
+import { getMyRestaurants, createRestaurant } from "./api/restaurants"
 
 export default function App() {
-  const [phone, setPhone] = useState("")
-  const [otp, setOtp] = useState("")
-  const [step, setStep] = useState("PHONE")
+  const [session, setSession] = useState(false)
+  const [restaurants, setRestaurants] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const sendOtp = async () => {
-    const { error } = await supabase.auth.signInWithOtp({ phone })
-    if (error) alert(error.message)
-    else setStep("OTP")
+  async function bootstrap() {
+    setLoading(true)
+    const data = await getMyRestaurants()
+    setRestaurants(data)
+    setLoading(false)
   }
 
-  const verifyOtp = async () => {
-    const { data, error } = await supabase.auth.verifyOtp({
-      phone,
-      token: otp,
-      type: "sms"
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setSession(true)
+        bootstrap()
+      } else {
+        setSession(false)
+        setLoading(false)
+      }
     })
+  }, [])
 
-    if (error) alert(error.message)
-      else setStep("DONE")
-      // ✅ ACCESS TOKEN
-  const accessToken = data.session.access_token
-  const refreshToken = data.session.refresh_token
-  const user = data.user
+  async function handleLogin() {
+    setSession(true)
+    await bootstrap()
+  }
 
-  console.log("Access Token:", accessToken)
-  console.log("Refresh Token:", refreshToken)
-  console.log("User:", user)
+  async function logout() {
+    await supabase.auth.signOut()
+    setSession(false)
+    setRestaurants([])
+    setSelected(null)
+  }
 
-    
+  if (!session) {
+    return <Login onLogin={handleLogin} />
+  }
+
+  if (loading) {
+    return <div>Loading restaurants...</div>
   }
 
   return (
-    <div style={{ padding: 40 }}>
-      {step === "PHONE" && (
-        <>
-          <h2>Login with Phone</h2>
-          <input
-            placeholder="+91xxxxxxxxxx"
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
-          />
-          <button onClick={sendOtp}>Send OTP</button>
-        </>
-      )}
+    <>
+      <button onClick={logout}>Logout</button>
 
-      {step === "OTP" && (
-        <>
-          <h2>Enter OTP</h2>
-          <input
-            placeholder="123456"
-            value={otp}
-            onChange={e => setOtp(e.target.value)}
-          />
-          <button onClick={verifyOtp}>Verify OTP</button>
-        </>
-      )}
+      <RestaurantForm
+        onSave={async data => {
+          const r = await createRestaurant(data)
+          setRestaurants(prev => [...prev, r])
+        }}
+      />
 
-      {step === "DONE" && (
-        <h2>Logged In ✅</h2>
-      )}
-    </div>
+      <RestaurantList
+        restaurants={restaurants}
+        onSelect={setSelected}
+      />
+
+      {selected && <RestaurantDetail restaurant={selected} />}
+    </>
   )
 }

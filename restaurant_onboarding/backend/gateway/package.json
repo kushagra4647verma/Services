@@ -7,9 +7,13 @@
   "scripts": {
     "start": "node src/index.js"
   },
+  
   "dependencies": {
     "express": "^4.19.2",
     "express-http-proxy": "^1.6.3",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5"
   }
 }
+
+
