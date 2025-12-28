@@ -9,8 +9,17 @@ export const createRestaurant = data =>
     body: JSON.stringify(data)
   }).then(r => r.json())
 
-export const updateRestaurant = (id, data) =>
-  apiFetch(`/restaurants/${id}`, {
+export async function updateRestaurant(id, payload) {
+  const res = await apiFetch(`/restaurants/${id}`, {
     method: "PATCH",
-    body: JSON.stringify(data)
-  }).then(r => r.json())
+    body: JSON.stringify(payload)
+  })
+
+  return res // MUST be updated restaurant
+}
+
+export function deleteRestaurant(restaurantId) {
+  return apiFetch(`/restaurants/${restaurantId}`, {
+    method: "DELETE"
+  })
+}

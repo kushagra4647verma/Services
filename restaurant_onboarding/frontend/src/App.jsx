@@ -4,7 +4,11 @@ import Login from "./components/auth/Login"
 import RestaurantList from "./components/restaurants/RestaurantList"
 import RestaurantForm from "./components/restaurants/RestaurantForm"
 import RestaurantDetail from "./components/restaurants/RestaurantDetail"
-import { getMyRestaurants, createRestaurant } from "./api/restaurants"
+import {
+  getMyRestaurants,
+  createRestaurant,
+  deleteRestaurant
+} from "./api/restaurants"
 
 export default function App() {
   const [session, setSession] = useState(false)
@@ -43,6 +47,30 @@ export default function App() {
     setSelected(null)
   }
 
+  // 🔥 DELETE HANDLER
+  async function handleDeleteRestaurant(restaurantId) {
+    const ok = window.confirm(
+      "Are you sure? This will permanently delete the restaurant and its uploaded files."
+    )
+
+    if (!ok) return
+
+    try {
+      await deleteRestaurant(restaurantId)
+
+      setRestaurants(prev =>
+        prev.filter(r => r.id !== restaurantId)
+      )
+
+      if (selected?.id === restaurantId) {
+        setSelected(null)
+      }
+    } catch (err) {
+      console.error(err)
+      alert("Failed to delete restaurant")
+    }
+  }
+
   if (!session) {
     return <Login onLogin={handleLogin} />
   }
@@ -56,18 +84,47 @@ export default function App() {
       <button onClick={logout}>Logout</button>
 
       <RestaurantForm
-        onSave={async data => {
-          const r = await createRestaurant(data)
-          setRestaurants(prev => [...prev, r])
-        }}
-      />
+  onCreate={async data => {
+    const r = await createRestaurant(data)
+    setRestaurants(prev => [...prev, r])
+    return r
+  }}
+  onRestaurantUpdated={updated => {
+    setRestaurants(prev =>
+      prev.map(r =>
+        r.id === updated.id ? updated : r
+      )
+    )
+
+    if (selected?.id === updated.id) {
+      setSelected(updated)
+    }
+  }}
+/>
+
+
+
 
       <RestaurantList
         restaurants={restaurants}
         onSelect={setSelected}
+        onDelete={handleDeleteRestaurant} // ✅ pass down
       />
 
-      {selected && <RestaurantDetail restaurant={selected} />}
+      {selected && (
+  <RestaurantDetail
+    restaurant={selected}
+    onRestaurantUpdated={updated => {
+      setRestaurants(prev =>
+        prev.map(r =>
+          r.id === updated.id ? updated : r
+        )
+      )
+      setSelected(updated)
+    }}
+  />
+)}
+
     </>
   )
 }

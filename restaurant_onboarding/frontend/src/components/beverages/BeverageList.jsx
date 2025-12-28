@@ -8,18 +8,29 @@ import {
 import BeverageForm from "./BeverageForm"
 
 export default function BeverageList({ restaurantId }) {
-  const [items, setItems] = useState([])
+  const [beverages, setBeverages] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [editName, setEditName] = useState("")
 
   useEffect(() => {
-    getBeverages(restaurantId).then(setItems)
+    if (!restaurantId) return
+
+    async function load() {
+      const data = await getBeverages(restaurantId)
+      setBeverages(data)
+    }
+
+    load()
   }, [restaurantId])
 
   async function handleDelete(id) {
     if (!window.confirm("Delete beverage?")) return
+
     await deleteBeverage(id)
-    setItems(items.filter(i => i.id !== id))
+
+    setBeverages(prev =>
+      prev.filter(b => b.id !== id)
+    )
   }
 
   function startEdit(beverage) {
@@ -32,9 +43,11 @@ export default function BeverageList({ restaurantId }) {
       name: editName
     })
 
-    setItems(items.map(b =>
-      b.id === beverageId ? updated : b
-    ))
+    setBeverages(prev =>
+      prev.map(b =>
+        b.id === beverageId ? updated : b
+      )
+    )
 
     setEditingId(null)
     setEditName("")
@@ -51,10 +64,12 @@ export default function BeverageList({ restaurantId }) {
 
       <BeverageForm
         restaurantId={restaurantId}
-        onCreate={b => setItems([...items, b])}
+        onCreate={b =>
+          setBeverages(prev => [...prev, b])
+        }
       />
 
-      {items.map(b => (
+      {beverages.map(b => (
         <div key={b.id}>
           {editingId === b.id ? (
             <>

@@ -10,7 +10,8 @@ export async function apiFetch(path, options = {}) {
   const {
     data: { session }
   } = await supabase.auth.getSession()
-
+  // console.log("Uploading as:", session?.user?.id)
+  // console.log("SESSION:", session)
   if (!session) throw new Error("Not authenticated")
 
   return fetch(`${BASE_URL}${path}`, {
