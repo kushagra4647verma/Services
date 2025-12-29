@@ -58,7 +58,7 @@ export default function App() {
     try {
       await deleteRestaurant(restaurantId)
 
-      setRestaurants(prev =>
+      setRestaurants(prev =>                    //not calling to getRestaurants to decrease API calls
         prev.filter(r => r.id !== restaurantId)
       )
 
@@ -99,6 +99,7 @@ export default function App() {
     if (selected?.id === updated.id) {
       setSelected(updated)
     }
+    console.log("updated list in App.jsx",restaurants);
   }}
 />
 

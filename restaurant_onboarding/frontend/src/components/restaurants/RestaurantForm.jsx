@@ -54,6 +54,9 @@ finalRestaurant = await updateRestaurant(restaurant.id, {
 // return updated
 
       }
+      console.log("updated restaurant", finalRestaurant);
+      console.log("typeof finalRestaurant:", typeof finalRestaurant)
+
       onRestaurantUpdated(finalRestaurant)
 
       // Reset form

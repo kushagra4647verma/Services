@@ -10,16 +10,30 @@ export async function apiFetch(path, options = {}) {
   const {
     data: { session }
   } = await supabase.auth.getSession()
-  // console.log("Uploading as:", session?.user?.id)
-  // console.log("SESSION:", session)
+
   if (!session) throw new Error("Not authenticated")
 
-  return fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
+      "Content-Type": "application/json",
       ...options.headers,
-      Authorization: `Bearer ${session.access_token}`,
-      "Content-Type": "application/json"
+      Authorization: `Bearer ${session.access_token}`
     }
   })
+
+  // ❗ Handle HTTP errors explicitly
+  if (!res.ok) {
+    let errorBody
+    try {
+      errorBody = await res.json()
+    } catch {
+      errorBody = { message: res.statusText }
+    }
+    throw errorBody
+  }
+
+  // ❗ Parse JSON before returning
+  return res.json()
 }
+
