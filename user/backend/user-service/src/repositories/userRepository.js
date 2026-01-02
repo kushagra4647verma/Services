@@ -2,9 +2,9 @@ import { supabase } from "../db.js"
 
 export async function getUserProfile(userId) {
   const { data, error } = await supabase
-    .from("users")
-    .select("userId, name, phone")
-    .eq("userId", userId)
+    .from("profiles")
+    .select("id, name, phone")
+    .eq("id", userId)
     .single()
 
   if (error) throw error

@@ -10,8 +10,8 @@ export async function fetchTrendingRestaurants() {
 
 export async function fetchRestaurantDetails(restaurantId) {
   const [restaurant, docs] = await Promise.all([
-    repo.getRestaurantById(restaurantId),
-    repo.getRestaurantDocuments(restaurantId)
+    repo.getRestaurantById(restaurantId)
+    // repo.getRestaurantDocuments(restaurantId)
   ])
 
   if (!restaurant) {

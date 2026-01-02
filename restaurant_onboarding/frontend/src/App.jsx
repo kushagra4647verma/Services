@@ -24,16 +24,19 @@ export default function App() {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        setSession(true)
-        bootstrap()
-      } else {
-        setSession(false)
-        setLoading(false)
-      }
-    })
-  }, [])
+  document.documentElement.classList.add("dark")
+
+  supabase.auth.getSession().then(({ data }) => {
+    if (data.session) {
+      setSession(true)
+      bootstrap()
+    } else {
+      setSession(false)
+      setLoading(false)
+    }
+  })
+}, [])
+
 
   async function handleLogin() {
     setSession(true)

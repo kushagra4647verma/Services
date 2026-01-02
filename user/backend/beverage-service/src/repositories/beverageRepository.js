@@ -1,10 +1,11 @@
 import { supabase } from "../db.js"
 
 export async function getBeverageById(beverageId) {
+  // console.log(beverageId);
   const { data, error } = await supabase
     .from("beverages")
     .select("*")
-    .eq("beverageId", beverageId)
+    .eq("id", beverageId)
     .single()
 
   if (error) return null
@@ -15,7 +16,7 @@ export async function getAggregatedRatings(beverageId) {
   const { data, error } = await supabase
     .from("beverageRatings")
     .select("*")
-    .eq("beverageId", beverageId)
+    .eq("beverageid", beverageId)
     .single()
 
   if (error) return {
@@ -26,14 +27,14 @@ export async function getAggregatedRatings(beverageId) {
   }
 
   return {
-    avgHuman: data.countHuman
-      ? data.sumRatingsHuman / data.countHuman
+    avgHuman: data.counthuman
+      ? data.sumratingshuman / data.counthuman
       : 0,
-    countHuman: data.countHuman,
-    avgExpert: data.countExpert
-      ? data.sumRatingsExpert / data.countExpert
+    countHuman: data.counthuman,
+    avgExpert: data.countexpert
+      ? data.sumratingsexpert / data.countexpert
       : 0,
-    countExpert: data.countExpert
+    countExpert: data.countexpert
   }
 }
 

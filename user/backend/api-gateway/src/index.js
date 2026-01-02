@@ -19,8 +19,7 @@ app.get("/health", (_, res) => {
  * User App Routes
  */
 app.use(
-  "/restaurants",
-  authenticate,
+  "/restaurants", authenticate,
   createProxy(process.env.RESTAURANT_SERVICE_URL)
 )
 
@@ -60,7 +59,7 @@ app.use(
   createProxy(process.env.SOCIAL_SERVICE_URL)
 )
 
-const PORT = 4000
+const PORT = process.env.PORT||4000
 app.listen(PORT, () => {
   console.log(`🚀 API Gateway running on port ${PORT}`)
 })

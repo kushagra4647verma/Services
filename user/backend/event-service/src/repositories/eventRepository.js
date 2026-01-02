@@ -4,7 +4,7 @@ export async function getUpcomingEvents() {
   const today = new Date().toISOString().split("T")[0]
 
   const { data, error } = await supabase
-    .from("events")
+    .from("restaurantEvents")
     .select("*")
     .gte("date", today)
     .order("date", { ascending: true })
@@ -15,9 +15,9 @@ export async function getUpcomingEvents() {
 
 export async function getEventById(eventId) {
   const { data, error } = await supabase
-    .from("events")
+    .from("restaurantEvents")
     .select("*")
-    .eq("eventId", eventId)
+    .eq("id", eventId)
     .single()
 
   if (error) return null

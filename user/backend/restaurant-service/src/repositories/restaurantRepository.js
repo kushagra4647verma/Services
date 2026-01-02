@@ -15,18 +15,21 @@ export async function getTrendingRestaurants() {
     .from("trendingRestaurants")
     .select(`
       restaurantId,
-      restaurants (*)
+      restaurants!inner (*)
     `)
+    .eq("restaurants.isVerified", true)
 
   if (error) throw error
+
   return data.map(r => r.restaurants)
 }
+
 
 export async function getRestaurantById(restaurantId) {
   const { data, error } = await supabase
     .from("restaurants")
     .select("*")
-    .eq("restaurantId", restaurantId)
+    .eq("id", restaurantId)
     .eq("isVerified", true)
     .single()
 
@@ -34,22 +37,22 @@ export async function getRestaurantById(restaurantId) {
   return data
 }
 
-export async function getRestaurantDocuments(restaurantId) {
-  const { data, error } = await supabase
-    .from("restaurantDocuments")
-    .select("*")
-    .eq("restaurantId", restaurantId)
-    .single()
+// export async function getRestaurantDocuments(restaurantId) {
+//   const { data, error } = await supabase
+//     .from("restaurantDocuments")
+//     .select("*")
+//     .eq("restaurantId", restaurantId)
+//     .single()
 
-  if (error) return null
-  return data
-}
+//   if (error) return null
+//   return data
+// }
 
 export async function getRestaurantBeverages(restaurantId) {
   const { data, error } = await supabase
     .from("beverages")
     .select("*")
-    .eq("restaurantId", restaurantId)
+    .eq("restaurantid", restaurantId)
 
   if (error) throw error
   return data

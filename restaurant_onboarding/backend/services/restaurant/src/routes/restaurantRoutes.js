@@ -1,9 +1,9 @@
 import express from "express"
 import {
   getMyRestaurants,
-  createRestaurant,
+  createRestaurantController,
   getRestaurant,
-  updateRestaurant,
+  updateRestaurantController,
   deleteRestaurant
 } from "../controllers/restaurantController.js"
 
@@ -21,9 +21,9 @@ const router = express.Router()
 
 // restaurant core
 router.get("/me", getMyRestaurants)
-router.post("/", createRestaurant)
+router.post("/", createRestaurantController)
 router.get("/:restaurantId", getRestaurant)
-router.patch("/:restaurantId", updateRestaurant)
+router.patch("/:restaurantId", updateRestaurantController)
 router.delete("/:restaurantId", deleteRestaurant)
 
 // documents

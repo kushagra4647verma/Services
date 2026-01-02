@@ -10,6 +10,8 @@ export function authenticate(req, res, next) {
     const payload = jwt.decode(token)
     // console.log("payload:", payload);
     req.user = payload
+    console.log("AUTH MIDDLEWARE HIT")
+
     next()
   } catch {
     res.sendStatus(401)
