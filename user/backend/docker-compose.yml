@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    depends_on:
+      - restaurant-service
+      - beverage-service
+      - event-service
+      - user-service
+      - social-service
+
+  restaurant-service:
+    build: ./restaurant-service
+    container_name: restaurant-service
+    ports:
+      - "4001:4001"
+    env_file:
+      - .env
+
+  beverage-service:
+    build: ./beverage-service
+    container_name: beverage-service
+    ports:
+      - "4002:4002"
+    env_file:
+      - .env
+
+  event-service:
+    build: ./event-service
+    container_name: event-service
+    ports:
+      - "4003:4003"
+    env_file:
+      - .env
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "4004:4004"
+    env_file:
+      - .env
+
+  social-service:
+    build: ./social-service
+    container_name: social-service
+    ports:
+      - "4005:4005"
+    env_file:
+      - .env
