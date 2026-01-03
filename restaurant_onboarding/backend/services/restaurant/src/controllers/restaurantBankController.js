@@ -11,7 +11,7 @@ export async function getBank(req, res) {
   await assertRestaurantOwner(restaurantId, userId)
 
   const { data, error } = await supabase
-    .from("restaurantBank")
+    .from("restaurantBankDetails")
     .select("*")
     .eq("restaurantId", restaurantId)
     .single()
@@ -33,7 +33,7 @@ export async function updateBank(req, res) {
   await assertRestaurantOwner(restaurantId, userId)
 
   const { data, error } = await supabase
-    .from("restaurantBank")
+    .from("restaurantBankDetails")
     .upsert({
       restaurantId,
       ...req.body

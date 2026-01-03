@@ -7,10 +7,10 @@ import {
   deleteRestaurant
 } from "../controllers/restaurantController.js"
 
-import {
-  getDocuments,
-  updateDocuments
-} from "../controllers/restaurantDocumentsController.js"
+// import {
+//   getDocuments,
+//   updateDocuments
+// } from "../controllers/restaurantDocumentsController.js"
 
 import {
   getBank,
@@ -26,9 +26,9 @@ router.get("/:restaurantId", getRestaurant)
 router.patch("/:restaurantId", updateRestaurantController)
 router.delete("/:restaurantId", deleteRestaurant)
 
-// documents
-router.get("/:restaurantId/documents", getDocuments)
-router.patch("/:restaurantId/documents", updateDocuments)
+// // documents
+// router.get("/:restaurantId/documents", getDocuments)
+// router.patch("/:restaurantId/documents", updateDocuments)
 
 // bank
 router.get("/:restaurantId/bank", getBank)

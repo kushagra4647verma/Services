@@ -1,5 +1,7 @@
 import { deleteStorageFile } from "../../utils/deleteStorageFiles"
 import { uploadRestaurantFiles } from "../../utils/uploadRestaurantFiles"
+import { Button } from "@/components/ui/button"
+import { Trash2, RefreshCw, FileText, ExternalLink } from "lucide-react"
 
 function isImage(url) {
   return /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
@@ -15,7 +17,12 @@ export default function UploadedFiles({
   onFilesUpdated
 }) {
   if (!files.length) {
-    return <p>No documents uploaded.</p>
+    return (
+      <div className="glass rounded-xl p-6 text-center">
+        <FileText className="w-10 h-10 text-white/20 mx-auto mb-2" />
+        <p className="text-white/60 text-sm">No documents uploaded yet</p>
+      </div>
+    )
   }
 
   async function handleDelete(url) {
@@ -44,50 +51,90 @@ export default function UploadedFiles({
   }
 
   return (
-    <div style={{ marginTop: "12px" }}>
-      <h4>Uploaded Files</h4>
+    <div className="space-y-3">
+      <h4 className="text-white font-semibold flex items-center gap-2">
+        <FileText className="w-4 h-4 text-amber-500" />
+        Uploaded Files ({files.length})
+      </h4>
 
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {files.map((url, idx) => (
           <div
             key={idx}
-            style={{
-              border: "1px solid #ccc",
-              padding: "8px",
-              width: "180px"
-            }}
+            className="glass rounded-xl overflow-hidden group hover:scale-[1.02] transition-all duration-200"
           >
+            {/* Preview */}
             {isImage(url) ? (
-              <img
-                src={url}
-                alt=""
-                style={{
-                  width: "100%",
-                  height: "120px",
-                  objectFit: "cover"
-                }}
-              />
+              <div className="relative h-32">
+                <img
+                  src={url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              </div>
             ) : (
-              <a href={url} target="_blank" rel="noreferrer">
-                📄 {getFileName(url)}
-              </a>
+              <div className="h-32 bg-gradient-to-br from-amber-500/10 to-purple-500/10 flex flex-col items-center justify-center p-3">
+                <FileText className="w-10 h-10 text-white/30 mb-2" />
+                <p className="text-white/60 text-xs text-center truncate w-full px-2">
+                  {getFileName(url)}
+                </p>
+              </div>
             )}
 
-            <div style={{ marginTop: "6px" }}>
-              <button onClick={() => handleDelete(url)}>
-                Delete
-              </button>
+            {/* Actions */}
+            <div className="p-2 space-y-2">
+              {/* File name for images */}
+              {isImage(url) && (
+                <p className="text-white/80 text-xs truncate">{getFileName(url)}</p>
+              )}
 
-              <label style={{ marginLeft: "6px" }}>
-                Replace
-                <input
-                  type="file"
-                  hidden
-                  onChange={e =>
-                    handleReplace(url, e.target.files[0])
-                  }
-                />
-              </label>
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleDelete(url)}
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 h-8 glass border-white/20 text-red-400 text-xs hover:bg-red-500/20 hover:border-red-500/50"
+                >
+                  <Trash2 className="w-3 h-3 mr-1" />
+                  Delete
+                </Button>
+
+                <label className="flex-1">
+                  <Button
+                    asChild
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 glass border-white/20 text-white text-xs hover:bg-amber-500/20 hover:border-amber-500/50 cursor-pointer"
+                  >
+                    <span>
+                      <RefreshCw className="w-3 h-3 mr-1" />
+                      Replace
+                    </span>
+                  </Button>
+                  <input
+                    type="file"
+                    hidden
+                    onChange={e => {
+                      if (e.target.files[0]) {
+                        handleReplace(url, e.target.files[0])
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+
+              {/* Open in new tab */}
+              <a
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center justify-center gap-1 text-amber-500/80 hover:text-amber-500 text-xs transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open
+              </a>
             </div>
           </div>
         ))}

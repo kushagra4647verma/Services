@@ -1,4 +1,4 @@
-import { Store, MapPin, Trash2, Star } from "lucide-react"
+import { Store, MapPin, Trash2, Star, CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function RestaurantList({
@@ -41,7 +41,19 @@ export default function RestaurantList({
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               
               {/* Delete button */}
-              <div className="absolute top-3 right-3">
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                {/* Verified Badge */}
+                {r.isVerified ? (
+                  <div className="px-2 py-1 rounded-full bg-green-500/20 border border-green-500/40 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                    <span className="text-green-500 text-xs font-medium">Verified</span>
+                  </div>
+                ) : (
+                  <div className="px-2 py-1 rounded-full bg-white/10 border border-white/20 flex items-center gap-1">
+                    <XCircle className="w-3 h-3 text-white/60" />
+                    <span className="text-white/60 text-xs font-medium">Pending</span>
+                  </div>
+                )}
                 <button
                   onClick={e => {
                     e.stopPropagation()

@@ -3,14 +3,17 @@ import { getEvents, createEvent, deleteEvent, updateEvent } from "../../api/even
 import EventForm from "./EventForm"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Calendar, Plus, Edit, Trash2, X, Check } from "lucide-react"
+import { Calendar, Plus, Edit, Trash2, X, ArrowLeft, Clock, Link, FileText, Image, ExternalLink, Eye } from "lucide-react"
 
 export default function EventList({ restaurantId }) {
   const [events, setEvents] = useState([])
   const [showAddForm, setShowAddForm] = useState(false)
-  const [editingId, setEditingId] = useState(null)
-  const [editName, setEditName] = useState("")
+  const [selectedEvent, setSelectedEvent] = useState(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editData, setEditData] = useState(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (!restaurantId) return
@@ -32,28 +35,197 @@ export default function EventList({ restaurantId }) {
     setEvents(prev => prev.filter(e => e.id !== id))
   }
 
-  function startEdit(event) {
-    setEditingId(event.id)
-    setEditName(event.name)
+  // Detail view helpers
+  function openDetailView(event) {
+    setSelectedEvent(event)
   }
 
-  async function saveEdit(eventId) {
+  function openFullEditModal(event) {
+    setEditData({
+      name: event.name || "",
+      photo: event.photo || "",
+      eventDate: event.eventDate || "",
+      eventTime: event.eventTime || "",
+      bookingLink: event.bookingLink || "",
+      description: event.description || "",
+    })
+    setShowEditModal(true)
+  }
+
+  function updateField(field, value) {
+    setEditData(prev => ({ ...prev, [field]: value }))
+  }
+
+  async function handleFullSave() {
+    if (!selectedEvent) return
+    setSaving(true)
     try {
-      const updated = await updateEvent(eventId, { name: editName })
-      setEvents(prev =>
-        prev.map(e => e.id === eventId ? updated : e)
-      )
-      setEditingId(null)
-      setEditName("")
+      const updated = await updateEvent(selectedEvent.id, editData)
+      setEvents(prev => prev.map(e => e.id === selectedEvent.id ? updated : e))
+      setSelectedEvent(updated)
+      setShowEditModal(false)
     } catch (err) {
       console.error(err)
       alert("Failed to update event")
+    } finally {
+      setSaving(false)
     }
   }
 
-  function cancelEdit() {
-    setEditingId(null)
-    setEditName("")
+  async function handleDetailDelete() {
+    if (!window.confirm("Delete this event permanently?")) return
+    try {
+      await deleteEvent(selectedEvent.id)
+      setEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
+      setSelectedEvent(null)
+    } catch (err) {
+      console.error(err)
+      alert("Failed to delete event")
+    }
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return null
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    })
+  }
+
+  function formatTime(timeStr) {
+    if (!timeStr) return null
+    const [hours, minutes] = timeStr.split(":")
+    const h = parseInt(hours)
+    const ampm = h >= 12 ? "PM" : "AM"
+    const h12 = h % 12 || 12
+    return `${h12}:${minutes} ${ampm}`
+  }
+
+  // ========== DETAIL VIEW ==========
+  if (selectedEvent) {
+    const e = selectedEvent
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="relative h-56 rounded-xl overflow-hidden">
+          {e.photo ? (
+            <img src={e.photo} alt={e.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+              <Calendar className="w-16 h-16 text-white/20" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
+          
+          <button
+            onClick={() => setSelectedEvent(null)}
+            className="absolute top-3 left-3 w-9 h-9 rounded-full glass-strong flex items-center justify-center"
+          >
+            <ArrowLeft className="w-5 h-5 text-white" />
+          </button>
+
+          <div className="absolute bottom-4 left-4 right-4">
+            <h2 className="text-white text-2xl font-bold mb-1">{e.name}</h2>
+            {e.eventDate && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 glass rounded-full text-white/80 text-xs">
+                <Calendar className="w-3 h-3 text-purple-400" />
+                {formatDate(e.eventDate)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Date & Time */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="glass rounded-xl p-3">
+            <div className="flex flex-col items-center text-center">
+              <Calendar className="w-5 h-5 text-purple-500 mb-1" />
+              <span className="text-white/60 text-xs">Date</span>
+              <span className="text-white font-semibold text-sm">{formatDate(e.eventDate) || "Not set"}</span>
+            </div>
+          </div>
+          <div className="glass rounded-xl p-3">
+            <div className="flex flex-col items-center text-center">
+              <Clock className="w-5 h-5 text-purple-500 mb-1" />
+              <span className="text-white/60 text-xs">Time</span>
+              <span className="text-white font-semibold text-sm">{formatTime(e.eventTime) || "Not set"}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Description */}
+        {e.description && (
+          <div className="glass rounded-xl p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-purple-500" />
+              About this Event
+            </h3>
+            <p className="text-white/80 text-sm leading-relaxed">{e.description}</p>
+          </div>
+        )}
+
+        {/* Booking Link */}
+        {e.bookingLink && (
+          <a
+            href={e.bookingLink}
+            target="_blank"
+            rel="noreferrer"
+            className="block glass rounded-xl p-4 hover:scale-[1.02] transition-transform"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full gradient-purple flex items-center justify-center">
+                  <Link className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-white font-medium text-sm">Book / RSVP</p>
+                  <p className="text-white/60 text-xs truncate max-w-[180px]">{e.bookingLink}</p>
+                </div>
+              </div>
+              <ExternalLink className="w-5 h-5 text-white/40" />
+            </div>
+          </a>
+        )}
+
+        {/* Actions */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button onClick={() => openFullEditModal(e)} className="gradient-purple text-white font-semibold h-11 rounded-xl">
+            <Edit className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+          <Button onClick={handleDetailDelete} variant="outline" className="glass border-red-500/50 text-red-400 h-11 rounded-xl hover:bg-red-500/20">
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </Button>
+        </div>
+
+        {/* Edit Modal - Using EventForm */}
+        <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+          <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-purple-500" />
+                Edit Event
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              <EventForm
+                restaurantId={restaurantId}
+                initialData={selectedEvent}
+                onCreate={updated => {
+                  setEvents(prev => prev.map(e => e.id === updated.id ? updated : e))
+                  setSelectedEvent(updated)
+                  setShowEditModal(false)
+                }}
+                onCancel={() => setShowEditModal(false)}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    )
   }
 
   return (
@@ -75,76 +247,43 @@ export default function EventList({ restaurantId }) {
               key={e.id}
               className="glass rounded-xl overflow-hidden hover:scale-[1.02] transition-all duration-200"
             >
-              {/* Image */}
-              <div className="relative h-28">
-                {e.image ? (
-                  <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
+              {/* Image - Clickable */}
+              <div
+                className="relative h-28 cursor-pointer"
+                onClick={() => openDetailView(e)}
+              >
+                {e.photo ? (
+                  <img src={e.photo} alt={e.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
                     <Calendar className="w-10 h-10 text-white/20" />
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                {e.eventDate && (
+                  <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-full glass text-xs text-purple-400 font-semibold">
+                    {new Date(e.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </div>
+                )}
               </div>
 
               {/* Content */}
               <div className="p-3 space-y-2">
-                {editingId === e.id ? (
-                  <div className="space-y-2">
-                    <Input
-                      value={editName}
-                      onChange={ev => setEditName(ev.target.value)}
-                      className="glass border-white/20 text-white text-sm h-8"
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => saveEdit(e.id)}
-                        size="sm"
-                        className="flex-1 h-8 gradient-purple text-white text-xs"
-                      >
-                        <Check className="w-3 h-3 mr-1" />
-                        Save
-                      </Button>
-                      <Button
-                        onClick={cancelEdit}
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-8 glass border-white/20 text-white text-xs"
-                      >
-                        <X className="w-3 h-3 mr-1" />
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <h4 className="text-white font-medium text-sm truncate">{e.name}</h4>
-                    {e.date && (
-                      <p className="text-white/60 text-xs">{new Date(e.date).toLocaleDateString()}</p>
-                    )}
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => startEdit(e)}
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-8 glass border-white/20 text-white text-xs hover:bg-purple-500/20 hover:border-purple-500/50"
-                      >
-                        <Edit className="w-3 h-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(e.id)}
-                        size="sm"
-                        variant="outline"
-                        className="flex-1 h-8 glass border-white/20 text-red-400 text-xs hover:bg-red-500/20 hover:border-red-500/50"
-                      >
-                        <Trash2 className="w-3 h-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  </>
+                <h4 className="text-white font-medium text-sm truncate">{e.name}</h4>
+                {e.eventTime && (
+                  <p className="text-white/60 text-xs flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {formatTime(e.eventTime)}
+                  </p>
                 )}
+                <Button
+                  onClick={() => openDetailView(e)}
+                  size="sm"
+                  className="w-full h-8 gradient-purple text-white text-xs font-medium"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  View Details
+                </Button>
               </div>
             </div>
           ))}
