@@ -9,5 +9,11 @@ export const createEvent = (restaurantId, data) =>
     body: JSON.stringify(data)
   })
 
+export const updateEvent = (id, data) =>
+  apiFetch(`/events/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data)
+  })
+
 export const deleteEvent = id =>
   apiFetch(`/events/${id}`, { method: "DELETE" })

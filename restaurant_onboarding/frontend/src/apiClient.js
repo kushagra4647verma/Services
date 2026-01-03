@@ -33,7 +33,16 @@ export async function apiFetch(path, options = {}) {
     throw errorBody
   }
 
+  // ❗ Handle empty responses (like 204 No Content from DELETE)
+  const contentLength = res.headers.get("content-length")
+  const contentType = res.headers.get("content-type")
+  
+  if (res.status === 204 || contentLength === "0" || !contentType?.includes("application/json")) {
+    return null
+  }
+
   // ❗ Parse JSON before returning
-  return res.json()
+  const text = await res.text()
+  return text ? JSON.parse(text) : null
 }
 
