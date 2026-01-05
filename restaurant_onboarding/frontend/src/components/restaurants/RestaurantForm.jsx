@@ -461,8 +461,8 @@ export default function RestaurantForm({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-5">
-            <div>
+          <div className="space-y-5 w-full overflow-hidden">
+            <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Store className="w-4 h-4 text-amber-500" />
                 Restaurant Name *
@@ -471,11 +471,11 @@ export default function RestaurantForm({
                 placeholder="Enter restaurant name"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-12"
+                className="glass border-white/20 text-white placeholder:text-white/40 h-12 w-full"
               />
             </div>
 
-            <div>
+            <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <FileText className="w-4 h-4 text-amber-500" />
                 Description
@@ -484,11 +484,11 @@ export default function RestaurantForm({
                 placeholder="Tell us about your restaurant..."
                 value={bio}
                 onChange={e => setBio(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 min-h-[100px]"
+                className="glass border-white/20 text-white placeholder:text-white/40 min-h-[100px] w-full"
               />
             </div>
 
-            <div>
+            <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-500" />
                 Phone Number
@@ -497,11 +497,11 @@ export default function RestaurantForm({
                 placeholder="+91 98765 43210"
                 value={phone}
                 onChange={e => setPhone(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-12"
+                className="glass border-white/20 text-white placeholder:text-white/40 h-12 w-full"
               />
             </div>
 
-            <div>
+            <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-amber-500" />
                 Address
@@ -510,16 +510,16 @@ export default function RestaurantForm({
                 placeholder="Full address..."
                 value={address}
                 onChange={e => setAddress(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 min-h-[80px]"
+                className="glass border-white/20 text-white placeholder:text-white/40 min-h-[80px] w-full"
               />
             </div>
 
-            <div>
+            <div className="w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-amber-500" />
                 Location
               </label>
-              <div className="glass rounded-xl p-3 border border-white/20">
+              <div className="glass rounded-xl p-3 border border-white/20 w-full overflow-hidden">
                 <MapPicker value={location} onChange={setLocation} />
               </div>
             </div>
@@ -528,8 +528,8 @@ export default function RestaurantForm({
 
       case 2:
         return (
-          <div className="space-y-5">
-            <div>
+          <div className="space-y-5 w-full overflow-hidden">
+            <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Image className="w-4 h-4 text-amber-500" />
                 Logo Image
@@ -557,14 +557,14 @@ export default function RestaurantForm({
                   </div>
                 </div>
               ) : (
-                <div className="glass rounded-xl p-4 border border-white/20">
+                <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
                   <FileDropzone maxFiles={1} accept={{ "image/*": [] }} onFilesSelected={setLogoFiles} />
-                  {logoFiles.length > 0 && <p className="text-white/60 text-sm mt-2">{logoFiles[0].name}</p>}
+                  {logoFiles.length > 0 && <p className="text-white/60 text-sm mt-2 truncate">{logoFiles[0].name}</p>}
                 </div>
               )}
             </div>
 
-            <div>
+            <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Image className="w-4 h-4 text-amber-500" />
                 Cover Image
@@ -582,14 +582,14 @@ export default function RestaurantForm({
                   </div>
                 </div>
               ) : (
-                <div className="glass rounded-xl p-4 border border-white/20">
+                <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
                   <FileDropzone maxFiles={1} accept={{ "image/*": [] }} onFilesSelected={setCoverFiles} />
-                  {coverFiles.length > 0 && <p className="text-white/60 text-sm mt-2">{coverFiles[0].name}</p>}
+                  {coverFiles.length > 0 && <p className="text-white/60 text-sm mt-2 truncate">{coverFiles[0].name}</p>}
                 </div>
               )}
             </div>
 
-            <div>
+            <div className="w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Image className="w-4 h-4 text-amber-500" />
                 Gallery Images
@@ -611,7 +611,7 @@ export default function RestaurantForm({
                   ))}
                 </div>
               )}
-              <div className="glass rounded-xl p-4 border border-white/20">
+              <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
                 <FileDropzone maxFiles={5} accept={{ "image/*": [] }} onFilesSelected={setGalleryFiles} />
                 {galleryFiles.length > 0 && <p className="text-white/60 text-sm mt-2">{galleryFiles.length} new image(s) selected</p>}
               </div>
@@ -778,83 +778,83 @@ export default function RestaurantForm({
 
       case 5:
         return (
-          <div className="space-y-5">
-            <div className="glass rounded-xl p-4 border border-white/20">
+          <div className="space-y-5 w-full overflow-hidden">
+            <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-3 block font-medium">FSSAI License</label>
               <Input
                 placeholder="License Number"
                 value={fssailicensenumber}
                 onChange={e => setFssaiLicenseNumber(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3"
+                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3 w-full"
               />
               {fssaicertificate ? (
-                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
-                  <FileText className="w-4 h-4 text-amber-500" />
-                  <span className="text-white/80 text-sm flex-1 truncate">Certificate uploaded</span>
-                  <Button size="sm" variant="ghost" className="h-7 text-white/60" onClick={() => window.open(fssaicertificate, "_blank")}>Open</Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setFssaiCertificate(null)}><X className="w-3 h-3" /></Button>
+                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
+                  <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <span className="text-white/80 text-sm flex-1 truncate min-w-0">Certificate uploaded</span>
+                  <Button size="sm" variant="ghost" className="h-7 text-white/60 flex-shrink-0" onClick={() => window.open(fssaicertificate, "_blank")}>Open</Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setFssaiCertificate(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
                 <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setFssaiCertFiles} />
               )}
-              {fssaiCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{fssaiCertFiles[0].name}</p>}
+              {fssaiCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{fssaiCertFiles[0].name}</p>}
             </div>
 
-            <div className="glass rounded-xl p-4 border border-white/20">
+            <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-3 block font-medium">GST Registration</label>
               <Input
                 placeholder="GST Number"
                 value={gstnumber}
                 onChange={e => setGstNumber(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3"
+                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3 w-full"
               />
               {gstcertificate ? (
-                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
-                  <FileText className="w-4 h-4 text-amber-500" />
-                  <span className="text-white/80 text-sm flex-1 truncate">Certificate uploaded</span>
-                  <Button size="sm" variant="ghost" className="h-7 text-white/60" onClick={() => window.open(gstcertificate, "_blank")}>Open</Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setGstCertificate(null)}><X className="w-3 h-3" /></Button>
+                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
+                  <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <span className="text-white/80 text-sm flex-1 truncate min-w-0">Certificate uploaded</span>
+                  <Button size="sm" variant="ghost" className="h-7 text-white/60 flex-shrink-0" onClick={() => window.open(gstcertificate, "_blank")}>Open</Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setGstCertificate(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
                 <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setGstCertFiles} />
               )}
-              {gstCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{gstCertFiles[0].name}</p>}
+              {gstCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{gstCertFiles[0].name}</p>}
             </div>
 
-            <div className="glass rounded-xl p-4 border border-white/20">
+            <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-3 block font-medium">PAN Card</label>
               <Input
                 placeholder="PAN Number"
                 value={pannumber}
                 onChange={e => setPanNumber(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3"
+                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3 w-full"
               />
               {panimage ? (
-                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
-                  <FileText className="w-4 h-4 text-amber-500" />
-                  <span className="text-white/80 text-sm flex-1 truncate">PAN image uploaded</span>
-                  <Button size="sm" variant="ghost" className="h-7 text-white/60" onClick={() => window.open(panimage, "_blank")}>Open</Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setPanImage(null)}><X className="w-3 h-3" /></Button>
+                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
+                  <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <span className="text-white/80 text-sm flex-1 truncate min-w-0">PAN image uploaded</span>
+                  <Button size="sm" variant="ghost" className="h-7 text-white/60 flex-shrink-0" onClick={() => window.open(panimage, "_blank")}>Open</Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setPanImage(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
                 <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setPanImageFiles} />
               )}
-              {panImageFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{panImageFiles[0].name}</p>}
+              {panImageFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{panImageFiles[0].name}</p>}
             </div>
 
-            <div className="glass rounded-xl p-4 border border-white/20">
+            <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-3 block font-medium">BBMP Trade License</label>
               {bbmptradelicense ? (
-                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg">
-                  <FileText className="w-4 h-4 text-amber-500" />
-                  <span className="text-white/80 text-sm flex-1 truncate">License uploaded</span>
-                  <Button size="sm" variant="ghost" className="h-7 text-white/60" onClick={() => window.open(bbmptradelicense, "_blank")}>Open</Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setBbmpTradeLicense(null)}><X className="w-3 h-3" /></Button>
+                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
+                  <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <span className="text-white/80 text-sm flex-1 truncate min-w-0">License uploaded</span>
+                  <Button size="sm" variant="ghost" className="h-7 text-white/60 flex-shrink-0" onClick={() => window.open(bbmptradelicense, "_blank")}>Open</Button>
+                  <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setBbmpTradeLicense(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
                 <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setBbmpLicenseFiles} />
               )}
-              {bbmpLicenseFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{bbmpLicenseFiles[0].name}</p>}
+              {bbmpLicenseFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{bbmpLicenseFiles[0].name}</p>}
             </div>
           </div>
         )
@@ -910,10 +910,10 @@ export default function RestaurantForm({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 w-full overflow-hidden">
       {/* Step Indicator */}
-      <div className="glass rounded-xl p-4 border border-white/20">
-        <div className="flex items-center justify-between overflow-x-auto pb-2">
+      <div className="glass rounded-xl p-4 border border-white/20 overflow-hidden">
+        <div className="flex items-center justify-between overflow-x-auto pb-2 -mb-2">
           {STEPS.map((step) => {
             const StepIcon = step.icon
             const isActive = currentStep === step.id
@@ -925,12 +925,12 @@ export default function RestaurantForm({
                 key={step.id}
                 onClick={() => isAccessible && setCurrentStep(step.id)}
                 disabled={!isAccessible}
-                className={`flex flex-col items-center gap-1 min-w-[60px] transition-all ${
+                className={`flex flex-col items-center gap-1 min-w-[50px] sm:min-w-[60px] transition-all ${
                   isAccessible ? "cursor-pointer" : "cursor-not-allowed opacity-50"
                 }`}
               >
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
                     isActive
                       ? "gradient-amber text-black"
                       : isCompleted
@@ -938,9 +938,9 @@ export default function RestaurantForm({
                       : "bg-white/10 text-white/50"
                   }`}
                 >
-                  {isCompleted ? <Check className="w-5 h-5" /> : <StepIcon className="w-5 h-5" />}
+                  {isCompleted ? <Check className="w-4 h-4 sm:w-5 sm:h-5" /> : <StepIcon className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </div>
-                <span className={`text-xs ${isActive ? "text-amber-400" : "text-white/50"}`}>
+                <span className={`text-[10px] sm:text-xs ${isActive ? "text-amber-400" : "text-white/50"}`}>
                   {step.title}
                 </span>
               </button>
@@ -950,7 +950,7 @@ export default function RestaurantForm({
       </div>
 
       {/* Step Content */}
-      <div className="min-h-[300px]">{renderStepContent()}</div>
+      <div className="min-h-[300px] w-full overflow-hidden">{renderStepContent()}</div>
 
       {/* Navigation Buttons */}
       <div className="flex gap-3 pt-2">

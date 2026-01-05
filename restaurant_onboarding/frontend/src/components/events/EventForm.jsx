@@ -92,9 +92,9 @@ export default function EventForm({ restaurantId, onCreate, onCancel, initialDat
   }
 
   return (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto overflow-x-hidden pr-2 w-full">
       {/* Name */}
-      <div>
+      <div className="w-full">
         <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
           <Calendar className="w-4 h-4 text-purple-500" />
           Event Name *

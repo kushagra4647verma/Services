@@ -295,14 +295,14 @@ export default function BeverageList({ restaurantId }) {
 
         {/* Edit Modal - Using BeverageForm */}
         <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-          <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Wine className="w-5 h-5 text-amber-500" />
                 Edit Beverage
               </DialogTitle>
             </DialogHeader>
-            <div className="mt-4">
+            <div className="mt-4 w-full overflow-hidden">
               <BeverageForm
                 restaurantId={restaurantId}
                 initialData={selectedBeverage}
@@ -392,14 +392,14 @@ export default function BeverageList({ restaurantId }) {
 
       {/* Add Beverage Modal */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="bg-[#0a0a0a] border-white/10 text-white">
+        <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wine className="w-5 h-5 text-amber-500" />
               Add Beverage
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 w-full overflow-hidden">
             <BeverageForm
               restaurantId={restaurantId}
               onCreate={b => {

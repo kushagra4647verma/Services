@@ -196,14 +196,14 @@ export default function App() {
 
       {/* Create Restaurant Modal */}
       <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
-        <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Store className="w-5 h-5 text-amber-500" />
               Create Restaurant
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 w-full overflow-hidden">
             <RestaurantForm
               onCreate={async data => {
                 const r = await createRestaurant(data)

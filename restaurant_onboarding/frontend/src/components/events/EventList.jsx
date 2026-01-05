@@ -203,14 +203,14 @@ export default function EventList({ restaurantId }) {
 
         {/* Edit Modal - Using EventForm */}
         <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-          <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-purple-500" />
                 Edit Event
               </DialogTitle>
             </DialogHeader>
-            <div className="mt-4">
+            <div className="mt-4 w-full overflow-hidden">
               <EventForm
                 restaurantId={restaurantId}
                 initialData={selectedEvent}
@@ -298,14 +298,14 @@ export default function EventList({ restaurantId }) {
 
       {/* Add Event Modal */}
       <Dialog open={showAddForm} onOpenChange={setShowAddForm}>
-        <DialogContent className="bg-[#0a0a0a] border-white/10 text-white">
+        <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-purple-500" />
               Add Event
             </DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 w-full overflow-hidden">
             <EventForm
               restaurantId={restaurantId}
               onCreate={event => {

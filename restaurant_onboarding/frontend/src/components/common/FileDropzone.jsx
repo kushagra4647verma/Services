@@ -81,18 +81,18 @@ export default function FileDropzone({ onFilesSelected, maxFiles = 5, accept }) 
 
       {/* Selected Files Preview */}
       {files.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 w-full overflow-hidden">
           <p className="text-white/60 text-sm">{files.length} file(s) selected</p>
           
-          <div className="space-y-2">
+          <div className="space-y-2 w-full">
             {files.map((file, index) => (
               <div 
                 key={index} 
-                className="glass rounded-lg p-3 flex items-center gap-3"
+                className="glass rounded-lg p-3 flex items-center gap-3 w-full overflow-hidden"
               >
                 {/* Preview or Icon */}
                 {file.preview ? (
-                  <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden flex-shrink-0">
                     <img 
                       src={file.preview} 
                       alt={file.name}
@@ -100,14 +100,14 @@ export default function FileDropzone({ onFilesSelected, maxFiles = 5, accept }) 
                     />
                   </div>
                 ) : (
-                  <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                     {getFileIcon(file)}
                   </div>
                 )}
 
                 {/* File Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{file.name}</p>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <p className="text-white text-sm font-medium truncate max-w-full">{file.name}</p>
                   <p className="text-white/40 text-xs">{formatFileSize(file.size)}</p>
                 </div>
 

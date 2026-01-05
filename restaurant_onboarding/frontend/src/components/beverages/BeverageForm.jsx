@@ -15,12 +15,12 @@ const BASE_TYPES = ["Alcoholic", "Non-Alcoholic"]
 
 // TagInput component defined outside to prevent re-creation on every render
 const TagInput = ({ label, icon: Icon, value, items, onInputChange, onAdd, onRemove, placeholder, color = "amber" }) => (
-  <div>
+  <div className="w-full overflow-hidden">
     <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
       <Icon className={`w-4 h-4 text-${color}-500`} />
       {label}
     </label>
-    <div className="flex gap-2 mb-2">
+    <div className="flex gap-2 mb-2 w-full">
       <Input
         placeholder={placeholder}
         value={value}
@@ -31,29 +31,29 @@ const TagInput = ({ label, icon: Icon, value, items, onInputChange, onAdd, onRem
             onAdd()
           }
         }}
-        className="glass border-white/20 text-white placeholder:text-white/40 h-10 flex-1"
+        className="glass border-white/20 text-white placeholder:text-white/40 h-10 flex-1 min-w-0"
       />
       <Button
         type="button"
         onClick={onAdd}
-        className={`glass border-white/20 text-white h-10 px-4 hover:bg-${color}-500/20`}
+        className={`glass border-white/20 text-white h-10 px-3 sm:px-4 hover:bg-${color}-500/20 flex-shrink-0`}
         variant="outline"
       >
         Add
       </Button>
     </div>
     {items.length > 0 && (
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 w-full">
         {items.map((item, idx) => (
           <span
             key={idx}
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-${color}-500/20 text-${color}-400 border border-${color}-500/30`}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-${color}-500/20 text-${color}-400 border border-${color}-500/30 max-w-full`}
           >
-            {item}
+            <span className="truncate max-w-[120px] sm:max-w-[180px]">{item}</span>
             <button
               type="button"
               onClick={() => onRemove(idx)}
-              className="hover:text-white"
+              className="hover:text-white flex-shrink-0"
             >
               <X className="w-3 h-3" />
             </button>
@@ -180,9 +180,9 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
   }
 
   return (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto overflow-x-hidden pr-2 w-full">
       {/* Name */}
-      <div>
+      <div className="w-full">
         <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
           <Wine className="w-4 h-4 text-amber-500" />
           Beverage Name *
@@ -191,12 +191,12 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
           placeholder="Enter beverage name"
           value={formData.name}
           onChange={e => updateField("name", e.target.value)}
-          className="glass border-white/20 text-white placeholder:text-white/40 h-12"
+          className="glass border-white/20 text-white placeholder:text-white/40 h-12 w-full"
         />
       </div>
 
       {/* Category & Base Type */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-3 w-full">
         <div>
           <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
             <Tag className="w-4 h-4 text-amber-500" />

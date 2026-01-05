@@ -352,7 +352,7 @@ export default function RestaurantDetail({
 
       {/* Edit Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="glass-strong border-white/20 text-white max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="glass-strong border-white/20 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Edit2 className="w-5 h-5 text-amber-500" />
@@ -365,14 +365,16 @@ export default function RestaurantDetail({
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent" />
             </div>
           ) : (
-            <RestaurantForm
-              editRestaurant={restaurant}
-              editLegalInfo={legalInfo}
-              editBankDetails={bankDetails}
-              onRestaurantUpdated={handleEditComplete}
-              onComplete={() => setShowEditModal(false)}
-              onCancel={() => setShowEditModal(false)}
-            />
+            <div className="w-full overflow-hidden">
+              <RestaurantForm
+                editRestaurant={restaurant}
+                editLegalInfo={legalInfo}
+                editBankDetails={bankDetails}
+                onRestaurantUpdated={handleEditComplete}
+                onComplete={() => setShowEditModal(false)}
+                onCancel={() => setShowEditModal(false)}
+              />
+            </div>
           )}
         </DialogContent>
       </Dialog>
