@@ -2,17 +2,17 @@ import { supabase } from "../db.js"
 import { assertRestaurantOwner } from "../utils/ownershipGuard.js"
 
 /**
- * GET /restaurants/:restaurantId/bank
+ * GET /restaurants/:restaurantId/legal
  */
-export async function getBank(req, res) {
+export async function getLegal(req, res) {
   const { restaurantId } = req.params
 
   await assertRestaurantOwner(req, restaurantId)
 
   const { data, error } = await supabase
-    .from("restaurantBankDetails")
+    .from("restaurantLegalInfo")
     .select("*")
-    .eq("restaurantId", restaurantId)
+    .eq("restaurantid", restaurantId)
     .single()
 
   if (error && error.code !== "PGRST116") {
@@ -23,17 +23,17 @@ export async function getBank(req, res) {
 }
 
 /**
- * PATCH /restaurants/:restaurantId/bank
+ * PATCH /restaurants/:restaurantId/legal
  */
-export async function updateBank(req, res) {
+export async function updateLegal(req, res) {
   const { restaurantId } = req.params
 
   await assertRestaurantOwner(req, restaurantId)
 
   const { data, error } = await supabase
-    .from("restaurantBankDetails")
+    .from("restaurantLegalInfo")
     .upsert({
-      restaurantId,
+      restaurantid: restaurantId,
       ...req.body
     })
     .select()

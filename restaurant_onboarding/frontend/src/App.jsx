@@ -219,8 +219,8 @@ export default function App() {
                 if (selected?.id === updated.id) {
                   setSelected(updated)
                 }
-                setShowCreateForm(false)
               }}
+              onComplete={() => setShowCreateForm(false)}
               onCancel={() => setShowCreateForm(false)}
             />
           </div>

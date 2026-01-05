@@ -13,6 +13,57 @@ import { Wine, X, DollarSign, Droplets, Sparkles, Tag, AlertTriangle, Beaker, Fi
 const CATEGORIES = ["Cocktail", "Mocktail", "Beer", "Wine", "Whiskey", "Vodka", "Rum", "Gin", "Tequila", "Coffee", "Tea", "Juice", "Smoothie", "Other"]
 const BASE_TYPES = ["Alcoholic", "Non-Alcoholic"]
 
+// TagInput component defined outside to prevent re-creation on every render
+const TagInput = ({ label, icon: Icon, value, items, onInputChange, onAdd, onRemove, placeholder, color = "amber" }) => (
+  <div>
+    <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
+      <Icon className={`w-4 h-4 text-${color}-500`} />
+      {label}
+    </label>
+    <div className="flex gap-2 mb-2">
+      <Input
+        placeholder={placeholder}
+        value={value}
+        onChange={e => onInputChange(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === "Enter") {
+            e.preventDefault()
+            onAdd()
+          }
+        }}
+        className="glass border-white/20 text-white placeholder:text-white/40 h-10 flex-1"
+      />
+      <Button
+        type="button"
+        onClick={onAdd}
+        className={`glass border-white/20 text-white h-10 px-4 hover:bg-${color}-500/20`}
+        variant="outline"
+      >
+        Add
+      </Button>
+    </div>
+    {items.length > 0 && (
+      <div className="flex flex-wrap gap-2">
+        {items.map((item, idx) => (
+          <span
+            key={idx}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-${color}-500/20 text-${color}-400 border border-${color}-500/30`}
+          >
+            {item}
+            <button
+              type="button"
+              onClick={() => onRemove(idx)}
+              className="hover:text-white"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </span>
+        ))}
+      </div>
+    )}
+  </div>
+)
+
 export default function BeverageForm({ restaurantId, onCreate, onCancel, initialData = null }) {
   const isEditing = !!initialData?.id
   const [formData, setFormData] = useState({
@@ -127,56 +178,6 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
       alert("Failed to replace image")
     }
   }
-
-  const TagInput = ({ label, icon: Icon, value, items, onAdd, onRemove, placeholder, color = "amber" }) => (
-    <div>
-      <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
-        <Icon className={`w-4 h-4 text-${color}-500`} />
-        {label}
-      </label>
-      <div className="flex gap-2 mb-2">
-        <Input
-          placeholder={placeholder}
-          value={value}
-          onChange={e => onAdd(e.target.value, true)}
-          onKeyDown={e => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              onAdd(value, false)
-            }
-          }}
-          className="glass border-white/20 text-white placeholder:text-white/40 h-10 flex-1"
-        />
-        <Button
-          type="button"
-          onClick={() => onAdd(value, false)}
-          className={`glass border-white/20 text-white h-10 px-4 hover:bg-${color}-500/20`}
-          variant="outline"
-        >
-          Add
-        </Button>
-      </div>
-      {items.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {items.map((item, idx) => (
-            <span
-              key={idx}
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-${color}-500/20 text-${color}-400 border border-${color}-500/30`}
-            >
-              {item}
-              <button
-                type="button"
-                onClick={() => onRemove(idx)}
-                className="hover:text-white"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
 
   return (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
@@ -300,7 +301,8 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         icon={Beaker}
         value={ingredientInput}
         items={formData.ingredients}
-        onAdd={(v, isTyping) => isTyping ? setIngredientInput(v) : addToArray("ingredients", ingredientInput, setIngredientInput)}
+        onInputChange={setIngredientInput}
+        onAdd={() => addToArray("ingredients", ingredientInput, setIngredientInput)}
         onRemove={(idx) => removeFromArray("ingredients", idx)}
         placeholder="Add ingredient and press Enter"
         color="amber"
@@ -312,7 +314,8 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         icon={AlertTriangle}
         value={allergenInput}
         items={formData.allergens}
-        onAdd={(v, isTyping) => isTyping ? setAllergenInput(v) : addToArray("allergens", allergenInput, setAllergenInput)}
+        onInputChange={setAllergenInput}
+        onAdd={() => addToArray("allergens", allergenInput, setAllergenInput)}
         onRemove={(idx) => removeFromArray("allergens", idx)}
         placeholder="Add allergen and press Enter"
         color="red"
@@ -324,7 +327,8 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         icon={Sparkles}
         value={flavorInput}
         items={formData.flavorTags}
-        onAdd={(v, isTyping) => isTyping ? setFlavorInput(v) : addToArray("flavorTags", flavorInput, setFlavorInput)}
+        onInputChange={setFlavorInput}
+        onAdd={() => addToArray("flavorTags", flavorInput, setFlavorInput)}
         onRemove={(idx) => removeFromArray("flavorTags", idx)}
         placeholder="e.g., Sweet, Sour, Spicy..."
         color="purple"

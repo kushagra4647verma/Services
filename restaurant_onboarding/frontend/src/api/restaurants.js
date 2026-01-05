@@ -23,3 +23,27 @@ export function deleteRestaurant(restaurantId) {
     method: "DELETE"
   })
 }
+
+// Legal Info
+export function getLegalInfo(restaurantId) {
+  return apiFetch(`/restaurants/${restaurantId}/legal`)
+}
+
+export function updateLegalInfo(restaurantId, data) {
+  return apiFetch(`/restaurants/${restaurantId}/legal`, {
+    method: "PATCH",
+    body: JSON.stringify(data)
+  })
+}
+
+// Bank Details
+export function getBankDetails(restaurantId) {
+  return apiFetch(`/restaurants/${restaurantId}/bank`)
+}
+
+export function updateBankDetails(restaurantId, data) {
+  return apiFetch(`/restaurants/${restaurantId}/bank`, {
+    method: "PATCH",
+    body: JSON.stringify(data)
+  })
+}
