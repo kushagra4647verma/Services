@@ -612,7 +612,7 @@ export default function RestaurantForm({
                 </div>
               )}
               <div className="glass rounded-xl p-4 border border-white/20">
-                <FileDropzone maxFiles={10} accept={{ "image/*": [] }} onFilesSelected={setGalleryFiles} />
+                <FileDropzone maxFiles={5} accept={{ "image/*": [] }} onFilesSelected={setGalleryFiles} />
                 {galleryFiles.length > 0 && <p className="text-white/60 text-sm mt-2">{galleryFiles.length} new image(s) selected</p>}
               </div>
             </div>
@@ -716,7 +716,7 @@ export default function RestaurantForm({
                 <UploadedFiles files={foodMenuPics} restaurantId={createdRestaurantId} onFilesUpdated={setFoodMenuPics} />
               )}
               <div className="glass rounded-xl p-4 border border-white/20 mt-2">
-                <FileDropzone maxFiles={5} onFilesSelected={setMenuFiles} />
+                <FileDropzone maxFiles={5} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setMenuFiles} />
                 {menuFiles.length > 0 && <p className="text-white/60 text-sm mt-2">{menuFiles.length} file(s) selected</p>}
               </div>
             </div>
@@ -795,7 +795,7 @@ export default function RestaurantForm({
                   <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setFssaiCertificate(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
-                <FileDropzone maxFiles={1} onFilesSelected={setFssaiCertFiles} />
+                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setFssaiCertFiles} />
               )}
               {fssaiCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{fssaiCertFiles[0].name}</p>}
             </div>
@@ -816,7 +816,7 @@ export default function RestaurantForm({
                   <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setGstCertificate(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
-                <FileDropzone maxFiles={1} onFilesSelected={setGstCertFiles} />
+                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setGstCertFiles} />
               )}
               {gstCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{gstCertFiles[0].name}</p>}
             </div>
@@ -837,7 +837,7 @@ export default function RestaurantForm({
                   <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setPanImage(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
-                <FileDropzone maxFiles={1} onFilesSelected={setPanImageFiles} />
+                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setPanImageFiles} />
               )}
               {panImageFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{panImageFiles[0].name}</p>}
             </div>
@@ -852,7 +852,7 @@ export default function RestaurantForm({
                   <Button size="sm" variant="ghost" className="h-7 text-red-400" onClick={() => setBbmpTradeLicense(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
-                <FileDropzone maxFiles={1} onFilesSelected={setBbmpLicenseFiles} />
+                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setBbmpLicenseFiles} />
               )}
               {bbmpLicenseFiles.length > 0 && <p className="text-white/60 text-xs mt-1">{bbmpLicenseFiles[0].name}</p>}
             </div>

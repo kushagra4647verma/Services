@@ -23,6 +23,7 @@ export default function Login({ onLogin }) {
     }
 
     setLoading(true)
+    
     const { error } = await supabase.auth.signInWithOtp({
       phone: `+91${phone}`
     })
@@ -30,7 +31,7 @@ export default function Login({ onLogin }) {
     setLoading(false)
 
     if (error) {
-      toast.error("Failed to send OTP")
+      toast.error(error.message || "Failed to send OTP")
     } else {
       toast.success("OTP sent successfully")
       setStep("OTP")
@@ -44,6 +45,7 @@ export default function Login({ onLogin }) {
     }
 
     setLoading(true)
+    
     const { error } = await supabase.auth.verifyOtp({
       phone: `+91${phone}`,
       token: otp,
@@ -53,7 +55,7 @@ export default function Login({ onLogin }) {
     setLoading(false)
 
     if (error) {
-      toast.error("Invalid OTP")
+      toast.error(error.message || "Invalid OTP")
     } else {
       toast.success("Logged in successfully")
       onLogin()

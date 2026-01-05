@@ -3,7 +3,7 @@ import { useDropzone } from "react-dropzone"
 import { Upload, File, Image, X, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export default function FileDropzone({ onFilesSelected, maxFiles = 5 }) {
+export default function FileDropzone({ onFilesSelected, maxFiles = 5, accept }) {
   const [files, setFiles] = useState([])
 
   const onDrop = useCallback(
@@ -32,7 +32,8 @@ export default function FileDropzone({ onFilesSelected, maxFiles = 5 }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    multiple: maxFiles > 1
+    multiple: maxFiles > 1,
+    accept: accept
   })
 
   const getFileIcon = (file) => {
