@@ -1,0 +1,109 @@
+import { Store, MapPin, CheckCircle2, XCircle, User, Calendar } from "lucide-react"
+
+export default function RestaurantList({ restaurants, onSelect }) {
+  // Get first image from foodMenuPics or use a placeholder
+  const getRestaurantImage = (restaurant) => {
+    if (restaurant.foodMenuPics && restaurant.foodMenuPics.length > 0) {
+      return restaurant.foodMenuPics[0]
+    }
+    return null
+  }
+
+  // Format date
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "N/A"
+    return new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    })
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {(restaurants || []).map(r => {
+        const image = getRestaurantImage(r)
+        
+        return (
+          <div
+            key={r.id}
+            className="glass rounded-2xl overflow-hidden cursor-pointer hover:scale-[1.02] transition-all duration-200"
+            onClick={() => onSelect(r)}
+          >
+            {/* Image Section */}
+            <div className="relative h-48">
+              {image ? (
+                <img 
+                  src={image} 
+                  alt={r.name} 
+                  className="w-full h-full object-cover" 
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-amber-500/20 to-purple-500/20 flex items-center justify-center">
+                  <Store className="w-16 h-16 text-white/20" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              
+              {/* Status Badge */}
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                {r.isVerified ? (
+                  <div className="px-2 py-1 rounded-full bg-green-500/20 border border-green-500/40 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                    <span className="text-green-500 text-xs font-medium">Verified</span>
+                  </div>
+                ) : (
+                  <div className="px-2 py-1 rounded-full bg-white/10 border border-white/20 flex items-center gap-1">
+                    <XCircle className="w-3 h-3 text-white/60" />
+                    <span className="text-white/60 text-xs font-medium">Pending</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Restaurant info overlay */}
+              <div className="absolute bottom-3 left-3 right-3">
+                <h3 className="text-white font-semibold text-lg mb-1">{r.name}</h3>
+                {r.location && (
+                  <div className="flex items-center gap-2 text-sm text-white/80">
+                    <MapPin className="w-3 h-3" />
+                    <span>Location set</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Card Content */}
+            <div className="p-4 space-y-3">
+              {/* Owner ID (truncated) */}
+              <div className="flex items-center gap-2 text-white/50 text-xs">
+                <User className="w-3 h-3" />
+                <span className="truncate">Owner: {r.ownerId?.substring(0, 8)}...</span>
+              </div>
+
+              {/* Created Date */}
+              <div className="flex items-center gap-2 text-white/50 text-xs">
+                <Calendar className="w-3 h-3" />
+                <span>Created: {formatDate(r.created_at)}</span>
+              </div>
+              
+              {/* Bio */}
+              {r.bio && (
+                <p className="text-white/60 text-sm line-clamp-2">{r.bio}</p>
+              )}
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-1">
+                {r.phone && (
+                  <span className="text-xs px-2 py-1 glass rounded-full text-white/80">📞 {r.phone}</span>
+                )}
+                {r.foodMenuPics?.length > 0 && (
+                  <span className="text-xs px-2 py-1 glass rounded-full text-amber-500/80">📄 {r.foodMenuPics.length} doc(s)</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}

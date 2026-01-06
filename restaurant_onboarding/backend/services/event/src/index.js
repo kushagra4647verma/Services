@@ -7,6 +7,6 @@ app.use(express.json())
 app.use(authenticate)
 app.use(eventRoutes)
 
-app.listen(4003, () => {
-  console.log("Event service running on 4003")
+app.listen(5003, () => {
+  console.log("Event service running on 5003")
 })

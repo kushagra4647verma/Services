@@ -15,13 +15,13 @@ app.use(express.json())
 
 // Log all incoming requests
 app.use((req, res, next) => {
-  console.log(`[Gateway] ${req.method} ${req.originalUrl}`)
+  console.log(`[Admin Gateway] ${req.method} ${req.originalUrl}`)
   next()
 })
 
 app.use(routes)
 
-const PORT = process.env.API_GATEWAY_PORT || 3000
+const PORT = process.env.API_GATEWAY_PORT || 3100
 app.listen(PORT, () => {
-  console.log(`API Gateway running on ${PORT}`)
+  console.log(`Admin API Gateway running on ${PORT}`)
 })

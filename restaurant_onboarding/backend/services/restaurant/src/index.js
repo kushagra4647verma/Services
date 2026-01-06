@@ -23,6 +23,6 @@ app.use((req, res) => {
   res.status(404).json({ error: "Not found" })
 })
 
-app.listen(4001, () => {
-  console.log("Restaurant service running on 4001")
+app.listen(5001, () => {
+  console.log("Restaurant service running on 5001")
 })

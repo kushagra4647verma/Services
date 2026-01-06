@@ -6,15 +6,15 @@ import { authenticate } from "./authMiddleware.js"
 const router = express.Router()
 
 // ---- service proxies (DNS name = docker-compose service key) ----
-const restaurantService = proxy("http://restaurant-service:4001", {
+const restaurantService = proxy("http://onboarding-restaurant-service:5001", {
   proxyReqPathResolver: req => req.originalUrl
 })
 
-const beverageService = proxy("http://beverage-service:4002", {
+const beverageService = proxy("http://onboarding-beverage-service:5002", {
   proxyReqPathResolver: req => req.originalUrl
 })
 
-const eventService = proxy("http://event-service:4003", {
+const eventService = proxy("http://onboarding-event-service:5003", {
   proxyReqPathResolver: req => req.originalUrl
 })
 

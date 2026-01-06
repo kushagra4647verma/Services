@@ -7,6 +7,6 @@ app.use(express.json())
 app.use(authenticate)
 app.use(beverageRoutes)
 
-app.listen(4002, () => {
-  console.log("Beverage service running on 4002")
+app.listen(5002, () => {
+  console.log("Beverage service running on 5002")
 })

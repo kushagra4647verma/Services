@@ -1,0 +1,6 @@
+{
+  "name": "admin-backend",
+  "version": "1.0.0",
+  "description": "Admin Portal Backend",
+  "private": true
+}
