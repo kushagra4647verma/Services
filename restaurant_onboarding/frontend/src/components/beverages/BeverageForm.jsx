@@ -120,13 +120,18 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
       }
 
       const payload = {
-        ...formData,
+        name: formData.name,
+        category: formData.category && formData.category.trim() ? formData.category : null,
+        baseType: formData.baseType && formData.baseType.trim() ? formData.baseType : null,
+        type: formData.type && formData.type.trim() ? formData.type : null,
+        ingredients: formData.ingredients || [],
+        allergens: formData.allergens || [],
         price: formData.price ? parseFloat(formData.price) : null,
-        photo: photoUrl,
-        baseType: formData.baseType,
-        sizeVol: formData.sizeVol,
-        isSignatureItem: formData.isSignatureItem,
-        flavorTags: formData.flavorTags,
+        sizeVol: formData.sizeVol && formData.sizeVol.trim() ? formData.sizeVol : null,
+        isSignatureItem: formData.isSignatureItem || false,
+        flavorTags: formData.flavorTags || [],
+        description: formData.description && formData.description.trim() ? formData.description.trim() : null,
+        photo: photoUrl
       }
 
       let beverage

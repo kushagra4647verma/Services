@@ -2,13 +2,52 @@ import { supabase } from "../db.js"
 import { assertRestaurantOwner } from "../utils/ownershipGuard.js"
 
 /**
+ * Sanitize beverage payload - convert empty strings to null for database compatibility
+ */
+function sanitizeBeveragePayload(body) {
+  const sanitized = { ...body }
+  
+  // Convert empty strings to null for optional fields
+  const optionalFields = ['category', 'baseType', 'type', 'sizeVol', 'description', 'photo']
+  for (const field of optionalFields) {
+    if (sanitized[field] === "" || sanitized[field] === undefined) {
+      sanitized[field] = null
+    }
+  }
+  
+  // Handle price as number or null
+  if (sanitized.price === "" || sanitized.price === undefined || sanitized.price === null) {
+    sanitized.price = null
+  } else if (typeof sanitized.price === 'string') {
+    sanitized.price = parseFloat(sanitized.price) || null
+  }
+  
+  // Ensure arrays are properly formatted
+  if (!Array.isArray(sanitized.ingredients)) {
+    sanitized.ingredients = []
+  }
+  if (!Array.isArray(sanitized.allergens)) {
+    sanitized.allergens = []
+  }
+  if (!Array.isArray(sanitized.flavorTags)) {
+    sanitized.flavorTags = []
+  }
+  
+  return sanitized
+}
+
+/**
  * GET /restaurants/:restaurantId/beverages
  */
 export async function getBeverages(req, res) {
   const { restaurantId } = req.params
   const userId = req.user.sub
 
-  await assertRestaurantOwner(restaurantId, userId)
+  try {
+    await assertRestaurantOwner(restaurantId, userId)
+  } catch (err) {
+    return res.status(err.statusCode || 403).json({ error: err.message })
+  }
 
   const { data, error } = await supabase
     .from("beverages")
@@ -26,12 +65,18 @@ export async function createBeverage(req, res) {
   const { restaurantId } = req.params
   const userId = req.user.sub
 
-  await assertRestaurantOwner(restaurantId, userId)
+  try {
+    await assertRestaurantOwner(restaurantId, userId)
+  } catch (err) {
+    return res.status(err.statusCode || 403).json({ error: err.message })
+  }
+
+  const sanitizedBody = sanitizeBeveragePayload(req.body)
 
   const { data, error } = await supabase
     .from("beverages")
     .insert({
-      ...req.body,
+      ...sanitizedBody,
       restaurantid: restaurantId
     })
     .select()
@@ -63,9 +108,11 @@ export async function getBeverage(req, res) {
 export async function updateBeverage(req, res) {
   const { beverageId } = req.params
 
+  const sanitizedBody = sanitizeBeveragePayload(req.body)
+
   const { data, error } = await supabase
     .from("beverages")
-    .update(req.body)
+    .update(sanitizedBody)
     .eq("id", beverageId)
     .select()
     .single()

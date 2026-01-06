@@ -37,7 +37,7 @@ export default function BeverageList({ restaurantId }) {
 
     async function load() {
       const data = await getBeverages(restaurantId)
-      setBeverages(data)
+      setBeverages(data || [])
     }
 
     load()
@@ -47,10 +47,7 @@ export default function BeverageList({ restaurantId }) {
     if (!window.confirm("Delete beverage?")) return
 
     await deleteBeverage(id)
-
-    setBeverages(prev =>
-      prev.filter(b => b.id !== id)
-    )
+    setBeverages(prev => (prev || []).filter(b => b.id !== id))
   }
 
   function startEdit(beverage) {
@@ -63,11 +60,7 @@ export default function BeverageList({ restaurantId }) {
       name: editName
     })
 
-    setBeverages(prev =>
-      prev.map(b =>
-        b.id === beverageId ? updated : b
-      )
-    )
+    setBeverages(prev => (prev || []).map(b => b.id === beverageId ? updated : b))
 
     setEditingId(null)
     setEditName("")
@@ -132,7 +125,7 @@ export default function BeverageList({ restaurantId }) {
         ...editData,
         price: editData.price ? parseFloat(editData.price) : null
       })
-      setBeverages(prev => prev.map(b => b.id === selectedBeverage.id ? updated : b))
+      setBeverages(prev => (prev || []).map(b => b.id === selectedBeverage.id ? updated : b))
       setSelectedBeverage(updated)
       setShowEditModal(false)
     } catch (err) {
@@ -147,7 +140,7 @@ export default function BeverageList({ restaurantId }) {
     if (!window.confirm("Delete this beverage permanently?")) return
     try {
       await deleteBeverage(selectedBeverage.id)
-      setBeverages(prev => prev.filter(b => b.id !== selectedBeverage.id))
+      setBeverages(prev => (prev || []).filter(b => b.id !== selectedBeverage.id))
       setSelectedBeverage(null)
     } catch (err) {
       console.error(err)
@@ -403,7 +396,7 @@ export default function BeverageList({ restaurantId }) {
             <BeverageForm
               restaurantId={restaurantId}
               onCreate={b => {
-                setBeverages(prev => [...prev, b])
+                setBeverages(prev => ([...(prev || []), b]))
                 setShowAddForm(false)
               }}
               onCancel={() => setShowAddForm(false)}

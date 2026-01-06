@@ -2,13 +2,43 @@ import { supabase } from "../db.js"
 import { assertRestaurantOwner } from "../utils/ownershipGuard.js"
 
 /**
+ * Sanitize event payload - convert empty strings to null for database compatibility
+ */
+function sanitizeEventPayload(body) {
+  const sanitized = { ...body }
+  
+  // Convert empty strings to null for date/time fields
+  if (sanitized.eventDate === "" || sanitized.eventDate === undefined) {
+    sanitized.eventDate = null
+  }
+  if (sanitized.eventTime === "" || sanitized.eventTime === undefined) {
+    sanitized.eventTime = null
+  }
+  if (sanitized.bookingLink === "" || sanitized.bookingLink === undefined) {
+    sanitized.bookingLink = null
+  }
+  if (sanitized.description === "" || sanitized.description === undefined) {
+    sanitized.description = null
+  }
+  if (sanitized.photo === "" || sanitized.photo === undefined) {
+    sanitized.photo = null
+  }
+  
+  return sanitized
+}
+
+/**
  * GET /restaurants/:restaurantId/events
  */
 export async function getEvents(req, res) {
   const { restaurantId } = req.params
   const userId = req.user.sub
 
-  await assertRestaurantOwner(restaurantId, userId)
+  try {
+    await assertRestaurantOwner(restaurantId, userId)
+  } catch (err) {
+    return res.status(err.statusCode || 403).json({ error: err.message })
+  }
 
   const { data, error } = await supabase
     .from("restaurantEvents")
@@ -26,12 +56,18 @@ export async function createEvent(req, res) {
   const { restaurantId } = req.params
   const userId = req.user.sub
 
-  await assertRestaurantOwner(restaurantId, userId)
+  try {
+    await assertRestaurantOwner(restaurantId, userId)
+  } catch (err) {
+    return res.status(err.statusCode || 403).json({ error: err.message })
+  }
+
+  const sanitizedBody = sanitizeEventPayload(req.body)
 
   const { data, error } = await supabase
     .from("restaurantEvents")
     .insert({
-      ...req.body,
+      ...sanitizedBody,
       restaurantid: restaurantId
     })
     .select()
@@ -63,9 +99,11 @@ export async function getEvent(req, res) {
 export async function updateEvent(req, res) {
   const { eventId } = req.params
 
+  const sanitizedBody = sanitizeEventPayload(req.body)
+
   const { data, error } = await supabase
     .from("restaurantEvents")
-    .update(req.body)
+    .update(sanitizedBody)
     .eq("id", eventId)
     .select()
     .single()

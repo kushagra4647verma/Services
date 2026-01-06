@@ -24,6 +24,9 @@ export default function Login({ onLogin }) {
 
     setLoading(true)
     
+    // Clear any existing OTP before requesting new one
+    setOtp("")
+    
     const { error } = await supabase.auth.signInWithOtp({
       phone: `+91${phone}`
     })
@@ -31,6 +34,7 @@ export default function Login({ onLogin }) {
     setLoading(false)
 
     if (error) {
+      console.error("Send OTP error:", error)
       toast.error(error.message || "Failed to send OTP")
     } else {
       toast.success("OTP sent successfully")
@@ -46,7 +50,7 @@ export default function Login({ onLogin }) {
 
     setLoading(true)
     
-    const { error } = await supabase.auth.verifyOtp({
+    const { data, error } = await supabase.auth.verifyOtp({
       phone: `+91${phone}`,
       token: otp,
       type: "sms"
@@ -55,10 +59,23 @@ export default function Login({ onLogin }) {
     setLoading(false)
 
     if (error) {
-      toast.error(error.message || "Invalid OTP")
-    } else {
+      console.error("OTP verification error:", error)
+      // Handle specific error cases
+      if (error.status === 403) {
+        toast.error("OTP expired or invalid. Please request a new OTP.")
+        setOtp("")
+      } else if (error.message?.includes("expired")) {
+        toast.error("OTP has expired. Please request a new one.")
+        setOtp("")
+      } else {
+        toast.error(error.message || "Invalid OTP")
+      }
+    } else if (data?.session) {
+      console.log("Login successful, user ID:", data.session.user.id)
       toast.success("Logged in successfully")
       onLogin()
+    } else {
+      toast.error("Login failed. Please try again.")
     }
   }
 
@@ -152,6 +169,18 @@ export default function Login({ onLogin }) {
                 className="w-full gradient-amber text-black font-semibold h-12 rounded-xl hover:opacity-90"
               >
                 {loading ? "Verifying..." : "Verify OTP"}
+              </Button>
+
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setOtp("")
+                  sendOtp()
+                }}
+                disabled={loading}
+                className="w-full text-amber-500/80 hover:text-amber-500"
+              >
+                Resend OTP
               </Button>
 
               <Button

@@ -56,7 +56,7 @@ async function sendSmsViaMessageBot(phone, message) {
   }
 
   try {
-    const cleanPhone = phone.replace("+", "")
+    const cleanPhone = phone;
     
     const response = await fetch(MESSAGEBOT_API_URL, {
       method: "POST",

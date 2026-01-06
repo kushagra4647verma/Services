@@ -13,9 +13,12 @@ import {
 export async function getMyRestaurants(req, res) {
   try {
     const ownerId = req.user.sub
+    console.log("getMyRestaurants: Fetching restaurants for owner:", ownerId)
     const data = await fetchMyRestaurants(ownerId)
+    console.log("getMyRestaurants: Found", data?.length || 0, "restaurants")
     res.json(data)
   } catch (err) {
+    console.error("getMyRestaurants error:", err)
     res.status(500).json({ error: err.message })
   }
 }

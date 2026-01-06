@@ -88,7 +88,9 @@ function transformRestaurant(restaurant) {
 /* READS */
 
 export async function fetchMyRestaurants(ownerId) {
+  console.log("fetchMyRestaurants: Querying for ownerId:", ownerId)
   const { data, error } = await getRestaurantsByOwner(ownerId)
+  console.log("fetchMyRestaurants: Query result - data:", data?.length, "error:", error)
   if (error) throw error
   return data.map(transformRestaurant)
 }

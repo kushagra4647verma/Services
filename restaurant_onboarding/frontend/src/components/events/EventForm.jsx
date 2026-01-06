@@ -38,8 +38,12 @@ export default function EventForm({ restaurantId, onCreate, onCancel, initialDat
       }
 
       const payload = {
-        ...formData,
-        photo: photoUrl
+        name: formData.name,
+        eventDate: formData.eventDate ? formData.eventDate : null,
+        eventTime: formData.eventTime ? formData.eventTime : null,
+        bookingLink: formData.bookingLink && formData.bookingLink.trim() ? formData.bookingLink.trim() : null,
+        description: formData.description && formData.description.trim() ? formData.description.trim() : null,
+        photo: photoUrl || null
       }
 
       let event

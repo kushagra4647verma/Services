@@ -20,7 +20,7 @@ export default function EventList({ restaurantId }) {
 
     async function load() {
       const data = await getEvents(restaurantId)
-      setEvents(data)
+      setEvents(data || [])
     }
 
     load()
@@ -32,7 +32,7 @@ export default function EventList({ restaurantId }) {
     await deleteEvent(id)
 
     // 🔥 update SAME state
-    setEvents(prev => prev.filter(e => e.id !== id))
+    setEvents(prev => (prev || []).filter(e => e.id !== id))
   }
 
   // Detail view helpers
@@ -61,7 +61,7 @@ export default function EventList({ restaurantId }) {
     setSaving(true)
     try {
       const updated = await updateEvent(selectedEvent.id, editData)
-      setEvents(prev => prev.map(e => e.id === selectedEvent.id ? updated : e))
+      setEvents(prev => (prev || []).map(e => e.id === selectedEvent.id ? updated : e))
       setSelectedEvent(updated)
       setShowEditModal(false)
     } catch (err) {
@@ -76,7 +76,7 @@ export default function EventList({ restaurantId }) {
     if (!window.confirm("Delete this event permanently?")) return
     try {
       await deleteEvent(selectedEvent.id)
-      setEvents(prev => prev.filter(e => e.id !== selectedEvent.id))
+      setEvents(prev => (prev || []).filter(e => e.id !== selectedEvent.id))
       setSelectedEvent(null)
     } catch (err) {
       console.error(err)
@@ -309,7 +309,7 @@ export default function EventList({ restaurantId }) {
             <EventForm
               restaurantId={restaurantId}
               onCreate={event => {
-                setEvents(prev => [...prev, event])
+                setEvents(prev => ([...(prev || []), event]))
                 setShowAddForm(false)
               }}
               onCancel={() => setShowAddForm(false)}

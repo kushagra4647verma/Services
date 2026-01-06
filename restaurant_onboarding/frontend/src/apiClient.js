@@ -11,12 +11,19 @@ export async function apiFetch(path, options = {}) {
     data: { session }
   } = await supabase.auth.getSession()
 
-  if (!session) throw new Error("Not authenticated")
+  if (!session) {
+    console.error("apiFetch: No session found")
+    throw new Error("Not authenticated")
+  }
+
+  // Debug: Log user ID being used
+  console.log("apiFetch: Making request as user:", session.user.id)
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
+      "ngrok-skip-browser-warning": "true",
       ...options.headers,
       Authorization: `Bearer ${session.access_token}`
     }

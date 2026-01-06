@@ -16,7 +16,7 @@ export default function RestaurantList({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {restaurants.map(r => {
+      {(restaurants || []).map(r => {
         const image = getRestaurantImage(r)
         
         return (

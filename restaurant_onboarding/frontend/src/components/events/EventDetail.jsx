@@ -57,10 +57,15 @@ export default function EventDetail({ restaurantId }) {
   async function handleSave() {
     setSaving(true)
     try {
-      const updated = await updateEvent(eventId, {
-        ...editData,
+      const payload = {
+        name: editData.name,
+        eventDate: editData.eventDate && editData.eventDate.trim() ? editData.eventDate : null,
+        eventTime: editData.eventTime && editData.eventTime.trim() ? editData.eventTime : null,
+        bookingLink: editData.bookingLink && editData.bookingLink.trim() ? editData.bookingLink.trim() : null,
+        description: editData.description && editData.description.trim() ? editData.description.trim() : null,
         photo: editData.photo || null
-      })
+      }
+      const updated = await updateEvent(eventId, payload)
       setEvent(updated)
       setShowEditModal(false)
     } catch (err) {

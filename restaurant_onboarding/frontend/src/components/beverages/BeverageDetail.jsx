@@ -91,11 +91,21 @@ export default function BeverageDetail({ restaurantId }) {
   async function handleSave() {
     setSaving(true)
     try {
-      const updated = await updateBeverage(beverageId, {
-        ...editData,
+      const payload = {
+        name: editData.name,
+        category: editData.category && editData.category.trim() ? editData.category : null,
+        baseType: editData.baseType && editData.baseType.trim() ? editData.baseType : null,
+        type: editData.type && editData.type.trim() ? editData.type : null,
+        ingredients: editData.ingredients || [],
+        allergens: editData.allergens || [],
         price: editData.price ? parseFloat(editData.price) : null,
+        sizeVol: editData.sizeVol && editData.sizeVol.trim() ? editData.sizeVol : null,
+        isSignatureItem: editData.isSignatureItem || false,
+        flavorTags: editData.flavorTags || [],
+        description: editData.description && editData.description.trim() ? editData.description.trim() : null,
         photo: editData.photo || null
-      })
+      }
+      const updated = await updateBeverage(beverageId, payload)
       setBeverage(updated)
       setShowEditModal(false)
     } catch (err) {
