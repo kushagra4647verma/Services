@@ -20,6 +20,19 @@ const eventService = proxy("http://event-service:4003", {
 
 // ---- SMS Hook for Supabase Custom SMS ----
 
+// In-memory OTP store for development (phone -> { otp, timestamp })
+const otpStore = new Map()
+
+// Clean up old OTPs every 5 minutes
+setInterval(() => {
+  const now = Date.now()
+  for (const [phone, data] of otpStore) {
+    if (now - data.timestamp > 5 * 60 * 1000) {
+      otpStore.delete(phone)
+    }
+  }
+}, 5 * 60 * 1000)
+
 /**
  * Verify Supabase webhook signature
  */
@@ -116,6 +129,10 @@ router.post("/auth/sms-hook", async (req, res) => {
     const otp = sms.otp
     const message = `Your SipZy verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`
 
+    // Store OTP for dev mode retrieval
+    otpStore.set(phone, { otp, timestamp: Date.now() })
+    console.log(`[DEV] Stored OTP for ${phone}: ${otp}`)
+
     console.log(`Sending OTP to ${phone}`)
     
     const result = await sendSmsViaMessageBot(phone, message)
@@ -132,6 +149,37 @@ router.post("/auth/sms-hook", async (req, res) => {
     console.error("SMS Hook error:", error)
     res.status(500).json({ error: "Internal server error" })
   }
+})
+
+/**
+ * GET /auth/dev-otp/:phone
+ * Development endpoint to retrieve OTP for testing
+ * Only works in development mode
+ */
+router.get("/auth/dev-otp/:phone", (req, res) => {
+  // Only allow in development mode
+  if (process.env.NODE_ENV !== "development") {
+    return res.status(403).json({ error: "Not available in production" })
+  }
+
+  // Decode URL-encoded phone number (e.g., %2B91... -> +91...)
+  const phone = decodeURIComponent(req.params.phone)
+  console.log(`[DEV] Looking up OTP for phone: ${phone}`)
+  
+  const data = otpStore.get(phone)
+
+  if (!data) {
+    console.log(`[DEV] No OTP found. Available phones:`, Array.from(otpStore.keys()))
+    return res.status(404).json({ error: "No OTP found for this phone" })
+  }
+
+  // Check if OTP is still valid (5 minutes)
+  if (Date.now() - data.timestamp > 5 * 60 * 1000) {
+    otpStore.delete(phone)
+    return res.status(410).json({ error: "OTP expired" })
+  }
+
+  res.json({ otp: data.otp })
 })
 
 // ---- routing ----

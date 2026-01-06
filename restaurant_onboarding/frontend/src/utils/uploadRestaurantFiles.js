@@ -16,7 +16,7 @@ export async function uploadRestaurantFiles(restaurantId, files) {
   const uploadedUrls = []
 
   for (const file of files) {
-    console.log("Uploading:", file.name, file.type)
+    // console.log("Uploading:", file.name, file.type)
 
     const fileExt = file.name.split(".").pop()
     const fileName = `${crypto.randomUUID()}.${fileExt}`

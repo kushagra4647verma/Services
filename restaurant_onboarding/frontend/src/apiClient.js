@@ -17,7 +17,7 @@ export async function apiFetch(path, options = {}) {
   }
 
   // Debug: Log user ID being used
-  console.log("apiFetch: Making request as user:", session.user.id)
+  // console.log("apiFetch: Making request as user:", session.user.id)
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,

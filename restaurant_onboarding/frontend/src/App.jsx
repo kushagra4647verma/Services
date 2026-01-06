@@ -21,11 +21,11 @@ export default function App() {
   const [showCreateForm, setShowCreateForm] = useState(false)
 
   async function bootstrap() {
-    console.log("bootstrap: Starting to fetch restaurants...")
+    // console.log("bootstrap: Starting to fetch restaurants...")
     setLoading(true)
     try {
       const data = await getMyRestaurants()
-      console.log("bootstrap: Received", data?.length || 0, "restaurants:", data)
+      // console.log("bootstrap: Received", data?.length || 0, "restaurants:", data)
       setRestaurants(data || [])
     } catch (err) {
       console.error("bootstrap: Failed to load restaurants:", err)
@@ -51,7 +51,7 @@ export default function App() {
 
     // Listen for auth state changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id)
+      // console.log("Auth state changed:", event, session?.user?.id)
       if (event === 'SIGNED_IN' && session) {
         setSession(true)
         bootstrap()

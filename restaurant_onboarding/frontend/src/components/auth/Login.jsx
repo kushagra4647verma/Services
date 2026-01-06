@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { supabase } from "../../supabaseClient"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -10,11 +10,39 @@ import {
 import { Phone, GlassWater } from "lucide-react"
 import { toast } from "@/components/ui/sonner"
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
+const IS_DEV = import.meta.env.DEV
+
 export default function Login({ onLogin }) {
   const [phone, setPhone] = useState("")
   const [otp, setOtp] = useState("")
   const [step, setStep] = useState("PHONE")
   const [loading, setLoading] = useState(false)
+  const [devOtp, setDevOtp] = useState(null)
+
+  // Fetch OTP from backend in dev mode
+  async function fetchDevOtp(phoneNumber) {
+    if (!IS_DEV) return
+    
+    try {
+      // Wait a bit for the SMS hook to receive the OTP
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Supabase sends phone without the + prefix, so use 91XXXXXXXXXX format
+      const res = await fetch(`${API_BASE}/auth/dev-otp/91${phoneNumber}`, {
+        headers: {
+          "ngrok-skip-browser-warning": "true"
+        }
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setDevOtp(data.otp)
+      }
+    } catch (err) {
+      // console.log("Could not fetch dev OTP:", err)
+    }
+  }
 
   async function sendOtp() {
     if (phone.length !== 10) {
@@ -39,6 +67,8 @@ export default function Login({ onLogin }) {
     } else {
       toast.success("OTP sent successfully")
       setStep("OTP")
+      setDevOtp(null)
+      fetchDevOtp(phone)
     }
   }
 
@@ -71,7 +101,7 @@ export default function Login({ onLogin }) {
         toast.error(error.message || "Invalid OTP")
       }
     } else if (data?.session) {
-      console.log("Login successful, user ID:", data.session.user.id)
+      // console.log("Login successful, user ID:", data.session.user.id)
       toast.success("Logged in successfully")
       onLogin()
     } else {
@@ -148,6 +178,14 @@ export default function Login({ onLogin }) {
               </p>
             </div>
 
+            {/* Dev mode OTP display */}
+            {IS_DEV && devOtp && (
+              <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-center">
+                <p className="text-green-400 text-xs mb-1">OTP:</p>
+                <p className="text-green-300 text-2xl font-mono font-bold tracking-widest">{devOtp}</p>
+              </div>
+            )}
+
             <div className="flex justify-center">
               <InputOTP maxLength={6} value={otp} onChange={setOtp}>
                 <InputOTPGroup>
@@ -174,20 +212,9 @@ export default function Login({ onLogin }) {
               <Button
                 variant="ghost"
                 onClick={() => {
-                  setOtp("")
-                  sendOtp()
-                }}
-                disabled={loading}
-                className="w-full text-amber-500/80 hover:text-amber-500"
-              >
-                Resend OTP
-              </Button>
-
-              <Button
-                variant="ghost"
-                onClick={() => {
                   setStep("PHONE")
                   setOtp("")
+                  setDevOtp(null)
                 }}
                 className="w-full text-white/60 hover:text-white"
               >
