@@ -100,11 +100,11 @@ export default function Login({ onLogin }) {
           </form>
 
           {/* Warning Notice */}
-          <div className="mt-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+          {/* <div className="mt-6 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
             <p className="text-amber-500 text-xs text-center">
               ⚠️ This is a temporary admin portal. Do not use for production.
             </p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
