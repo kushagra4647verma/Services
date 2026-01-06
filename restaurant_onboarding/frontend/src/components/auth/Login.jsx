@@ -10,8 +10,8 @@ import {
 import { Phone, GlassWater } from "lucide-react"
 import { toast } from "@/components/ui/sonner"
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000"
-const IS_DEV = import.meta.env.DEV
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+// const IS_DEV = import.meta.env.DEV
 
 export default function Login({ onLogin }) {
   const [phone, setPhone] = useState("")
@@ -22,7 +22,7 @@ export default function Login({ onLogin }) {
 
   // Fetch OTP from backend in dev mode
   async function fetchDevOtp(phoneNumber) {
-    if (!IS_DEV) return
+    
     
     try {
       // Wait a bit for the SMS hook to receive the OTP
@@ -179,7 +179,7 @@ export default function Login({ onLogin }) {
             </div>
 
             {/* Dev mode OTP display */}
-            {IS_DEV && devOtp && (
+            {devOtp && (
               <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-3 text-center">
                 <p className="text-green-400 text-xs mb-1">OTP:</p>
                 <p className="text-green-300 text-2xl font-mono font-bold tracking-widest">{devOtp}</p>
