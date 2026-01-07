@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { supabase } from "./supabaseClient"
 import Login from "./components/auth/Login"
 import RestaurantList from "./components/restaurants/RestaurantList"
@@ -19,6 +19,10 @@ export default function App() {
   const [selected, setSelected] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showCreateForm, setShowCreateForm] = useState(false)
+  
+  // Track if we've already loaded data to prevent duplicate fetches
+  const hasLoadedRef = useRef(false)
+  const sessionRef = useRef(false)
 
   async function bootstrap() {
     // console.log("bootstrap: Starting to fetch restaurants...")
@@ -35,14 +39,48 @@ export default function App() {
     }
   }
 
+  // Silent refresh - only updates if isVerified changed for any restaurant
+  async function checkForVerificationChanges() {
+    try {
+      const newData = await getMyRestaurants()
+      if (!newData) return
+      
+      // Check if any restaurant's isVerified value changed
+      const hasVerificationChange = newData.some(newRestaurant => {
+        const oldRestaurant = restaurants.find(r => r.id === newRestaurant.id)
+        // If restaurant exists in old data, check if isVerified changed
+        if (oldRestaurant) {
+          return oldRestaurant.isVerified !== newRestaurant.isVerified
+        }
+        // New restaurant was added (shouldn't happen in normal flow, but handle it)
+        return true
+      })
+      
+      // Also check if any restaurant was removed
+      const wasRestaurantRemoved = restaurants.some(
+        oldRestaurant => !newData.find(r => r.id === oldRestaurant.id)
+      )
+      
+      if (hasVerificationChange || wasRestaurantRemoved) {
+        setRestaurants(newData)
+      }
+    } catch (err) {
+      console.error("checkForVerificationChanges: Failed to fetch:", err)
+    }
+  }
+
   useEffect(() => {
     document.documentElement.classList.add("dark")
 
-    // Check initial session
+    // Check initial session - only load once
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
+        sessionRef.current = true
         setSession(true)
-        bootstrap()
+        if (!hasLoadedRef.current) {
+          hasLoadedRef.current = true
+          bootstrap()
+        }
       } else {
         setSession(false)
         setLoading(false)
@@ -53,15 +91,23 @@ export default function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       // console.log("Auth state changed:", event, session?.user?.id)
       if (event === 'SIGNED_IN' && session) {
+        // Only bootstrap on actual NEW sign in, not on page reload or token refresh
+        const wasLoggedIn = sessionRef.current
+        sessionRef.current = true
         setSession(true)
-        bootstrap()
+        if (!wasLoggedIn && !hasLoadedRef.current) {
+          hasLoadedRef.current = true
+          bootstrap()
+        }
       } else if (event === 'SIGNED_OUT') {
+        sessionRef.current = false
+        hasLoadedRef.current = false
         setSession(false)
         setRestaurants([])
         setSelected(null)
         setLoading(false)
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        // Session refreshed, keep user logged in
+        // Session refreshed, keep user logged in - NO data refresh
         setSession(true)
       }
     })
@@ -130,7 +176,10 @@ export default function App() {
           <div className="flex items-center justify-between max-w-4xl mx-auto">
             <Button
               variant="ghost"
-              onClick={() => setSelected(null)}
+              onClick={() => {
+                setSelected(null)
+                checkForVerificationChanges()
+              }}
               className="text-white/80 hover:text-white"
             >
               ← Back
@@ -226,7 +275,13 @@ export default function App() {
       </div>
 
       {/* Create Restaurant Modal */}
-      <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+      <Dialog open={showCreateForm} onOpenChange={(open) => {
+        setShowCreateForm(open)
+        if (!open) {
+          // Form was closed, check for verification changes
+          checkForVerificationChanges()
+        }
+      }}>
         <DialogContent className="bg-[#0a0a0a] border-white/10 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
