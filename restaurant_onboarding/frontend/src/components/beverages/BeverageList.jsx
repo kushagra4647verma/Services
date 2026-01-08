@@ -14,8 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Wine, Plus, Edit, Trash2, X, Check, ArrowLeft, IndianRupee, Star, Tag, Droplets, Beaker, AlertTriangle, Sparkles, FileText, Eye, Utensils } from "lucide-react"
 
-const CATEGORIES = ["Cocktail", "Mocktail", "Beer", "Wine", "Whiskey", "Vodka", "Rum", "Gin", "Tequila", "Coffee", "Tea", "Juice", "Smoothie", "Other"]
-const DRINK_TYPES = ["Alcoholic", "Non-Alcoholic"]
+const CATEGORIES = ["Alcoholic", "Non-Alcoholic"]
 
 export default function BeverageList({ restaurantId }) {
   const [beverages, setBeverages] = useState([])
@@ -80,7 +79,6 @@ export default function BeverageList({ restaurantId }) {
     setEditData({
       name: beverage.name || "",
       category: beverage.category || "",
-      drinkType: beverage.drinkType || "",
       baseType: beverage.baseType || "",
       ingredients: beverage.ingredients || [],
       allergens: beverage.allergens || [],
@@ -195,8 +193,8 @@ export default function BeverageList({ restaurantId }) {
                   Signature
                 </span>
               )}
-              {b.drinkType && (
-                <span className="px-2 py-0.5 glass rounded-full text-white/80 text-xs">{b.drinkType}</span>
+              {b.category && (
+                <span className="px-2 py-0.5 glass rounded-full text-white/80 text-xs">{b.category}</span>
               )}
             </div>
             <h2 className="text-white text-2xl font-bold">{b.name}</h2>
@@ -230,10 +228,6 @@ export default function BeverageList({ restaurantId }) {
             <div className="flex justify-between py-1">
               <span className="text-white/60">Category</span>
               <span className="text-white">{b.category || "—"}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-white/60">Drink Type</span>
-              <span className="text-white">{b.drinkType || "—"}</span>
             </div>
             <div className="flex justify-between py-1">
               <span className="text-white/60">Base Type</span>

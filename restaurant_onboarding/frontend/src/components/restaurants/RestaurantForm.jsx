@@ -142,6 +142,7 @@ export default function RestaurantForm({
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [savingProgress, setSavingProgress] = useState(false)
+  const [saveStatus, setSaveStatus] = useState("idle") // "idle" | "saved" | "unsaved"
   const [createdRestaurantId, setCreatedRestaurantId] = useState(editRestaurant?.id || null)
 
   // Step 1: Basic Info
@@ -223,6 +224,21 @@ export default function RestaurantForm({
   // Menu documents
   const [menuFiles, setMenuFiles] = useState([])
   const [foodMenuPics, setFoodMenuPics] = useState(editRestaurant?.foodMenuPics || [])
+
+  // Reset save status to "idle" when any form field changes (after initial save)
+  useEffect(() => {
+    if (saveStatus === "saved") {
+      setSaveStatus("idle")
+    }
+  }, [
+    name, bio, phone, address, websiteUrl, contactEmail, location,
+    logoFiles, logoImage, coverFiles, coverImage, galleryFiles, gallery,
+    cuisineTags, amenities, priceRange, hasReservation, reservationLink, openingHours, hasAlcohol,
+    instaLink, facebookLink, twitterLink, googleMapsLink,
+    fssailicensenumber, fssaiCertFiles, fssaicertificate, gstnumber, gstCertFiles, gstcertificate,
+    pannumber, panImageFiles, panimage, bbmpLicenseFiles, bbmptradelicense, liquorLicenseFiles, liquorlicense,
+    accountnumber, ifsccode, menuFiles, foodMenuPics
+  ])
 
   // Upload helper
   async function uploadSingleFile(restaurantId, file, folder) {
@@ -562,15 +578,16 @@ export default function RestaurantForm({
     return MANDATORY_STEPS.every(step => isStepComplete(step))
   }
 
-  // Save progress without requiring all mandatory fields
-  async function handleSaveProgress() {
+  // Core save logic - returns true if saved successfully, false otherwise
+  async function performSave(options = { silent: false }) {
     // Must have at least a name to save
     if (!name.trim()) {
-      alert("Please enter at least a restaurant name to save progress")
-      return
+      if (!options.silent) {
+        alert("Please enter at least a restaurant name to save progress")
+      }
+      return false
     }
 
-    setSavingProgress(true)
     try {
       let finalLocation = location
       if (finalLocation && typeof finalLocation.lat !== 'number') {
@@ -710,25 +727,41 @@ export default function RestaurantForm({
         })
       }
 
-      alert(isComplete 
-        ? "Progress saved! All required fields are complete." 
-        : "Progress saved! Please complete all required fields to get verified."
-      )
-      
       onRestaurantUpdated?.({ id: restaurantId, iscomplete: isComplete })
+      return true
     } catch (err) {
       console.error(err)
-      alert("Failed to save progress. Please try again.")
+      if (!options.silent) {
+        alert("Failed to save progress. Please try again.")
+      }
+      return false
+    }
+  }
+
+  // Save progress without requiring all mandatory fields
+  async function handleSaveProgress() {
+    setSavingProgress(true)
+    try {
+      const success = await performSave({ silent: false })
+      if (success) {
+        setSaveStatus("saved")
+      }
     } finally {
       setSavingProgress(false)
     }
   }
 
-  // Handle next step navigation
-  function handleNextStep() {
+  // Handle next step navigation with auto-save
+  async function handleNextStep() {
     // Validate current step if it's mandatory
     if (MANDATORY_STEPS.includes(currentStep) && !validateStep(currentStep)) {
       return
+    }
+    
+    // Auto-save silently if restaurant name is provided
+    if (name.trim()) {
+      await performSave({ silent: true })
+      setSaveStatus("saved")
     }
     
     if (currentStep < 7) {
@@ -1455,10 +1488,10 @@ export default function RestaurantForm({
           variant="outline"
           onClick={handleSaveProgress}
           disabled={savingProgress || loading}
-          className="glass border-white/20 text-white h-12 rounded-xl hover:bg-white/10"
+          className={`glass border-white/20 text-white h-12 rounded-xl hover:bg-white/10 ${saveStatus === "saved" ? "border-green-500/50 text-green-400" : ""}`}
         >
-          <Save className="w-4 h-4 mr-2" />
-          {savingProgress ? "Saving..." : "Save Progress"}
+          {saveStatus === "saved" ? <Check className="w-4 h-4 mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+          {savingProgress ? "Saving..." : saveStatus === "saved" ? "Saved" : "Save Progress"}
         </Button>
 
         {currentStep < 7 ? (

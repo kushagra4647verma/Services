@@ -14,8 +14,7 @@ import {
   Tag, AlertTriangle, Beaker, FileText, Star, X, Check, ExternalLink, RefreshCw, Image, Utensils
 } from "lucide-react"
 
-const CATEGORIES = ["Cocktail", "Mocktail", "Beer", "Wine", "Whiskey", "Vodka", "Rum", "Gin", "Tequila", "Coffee", "Tea", "Juice", "Smoothie", "Other"]
-const DRINK_TYPES = ["Alcoholic", "Non-Alcoholic"]
+const CATEGORIES = ["Alcoholic", "Non-Alcoholic"]
 
 export default function BeverageDetail({ restaurantId }) {
   const { beverageId } = useParams()
@@ -54,7 +53,6 @@ export default function BeverageDetail({ restaurantId }) {
     setEditData({
       name: beverage.name || "",
       category: beverage.category || "",
-      drinkType: beverage.drinkType || "",
       baseType: beverage.baseType || "",
       ingredients: beverage.ingredients || [],
       allergens: beverage.allergens || [],
@@ -96,7 +94,6 @@ export default function BeverageDetail({ restaurantId }) {
       const payload = {
         name: editData.name,
         category: editData.category && editData.category.trim() ? editData.category : null,
-        drinkType: editData.drinkType && editData.drinkType.trim() ? editData.drinkType : null,
         baseType: editData.baseType && editData.baseType.trim() ? editData.baseType : null,
         ingredients: editData.ingredients || [],
         allergens: editData.allergens || [],
@@ -252,9 +249,9 @@ export default function BeverageDetail({ restaurantId }) {
                 Signature
               </span>
             )}
-            {beverage.drinkType && (
+            {beverage.category && (
               <span className="px-2 py-1 glass rounded-full text-white/80 text-xs">
-                {beverage.drinkType}
+                {beverage.category}
               </span>
             )}
           </div>
@@ -295,7 +292,6 @@ export default function BeverageDetail({ restaurantId }) {
           </h3>
           <div className="divide-y divide-white/10">
             <DetailRow label="Category" value={beverage.category} icon={Tag} />
-            <DetailRow label="Drink Type" value={beverage.drinkType} icon={Droplets} />
             <DetailRow label="Type / Style" value={beverage.baseType} icon={Beaker} />
             {beverage.description && (
               <div className="py-2">
@@ -390,38 +386,21 @@ export default function BeverageDetail({ restaurantId }) {
                 />
               </div>
 
-              {/* Category & Drink Type */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm text-white/80 mb-2 block">Category</label>
-                  <Select value={editData.category} onValueChange={v => updateField("category", v)}>
-                    <SelectTrigger className="glass border-white/20 text-white h-10">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-white/20">
-                      {CATEGORIES.map(cat => (
-                        <SelectItem key={cat} value={cat} className="text-white hover:bg-white/10">
-                          {cat}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-sm text-white/80 mb-2 block">Drink Type</label>
-                  <Select value={editData.drinkType} onValueChange={v => updateField("drinkType", v)}>
-                    <SelectTrigger className="glass border-white/20 text-white h-10">
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#1a1a1a] border-white/20">
-                      {DRINK_TYPES.map(type => (
-                        <SelectItem key={type} value={type} className="text-white hover:bg-white/10">
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Category */}
+              <div>
+                <label className="text-sm text-white/80 mb-2 block">Category</label>
+                <Select value={editData.category} onValueChange={v => updateField("category", v)}>
+                  <SelectTrigger className="glass border-white/20 text-white h-10">
+                    <SelectValue placeholder="Alcoholic or Non-Alcoholic?" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-white/20">
+                    {CATEGORIES.map(cat => (
+                      <SelectItem key={cat} value={cat} className="text-white hover:bg-white/10">
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Type / Style */}

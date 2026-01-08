@@ -10,8 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Wine, X, IndianRupee, Droplets, Sparkles, Tag, AlertTriangle, Beaker, FileText, Star, Image, Trash2, RefreshCw, ExternalLink, Utensils } from "lucide-react"
 
-const CATEGORIES = ["Cocktail", "Mocktail", "Beer", "Wine", "Whiskey", "Vodka", "Rum", "Gin", "Tequila", "Coffee", "Tea", "Juice", "Smoothie", "Other"]
-const DRINK_TYPES = ["Alcoholic", "Non-Alcoholic"]
+const CATEGORIES = ["Alcoholic", "Non-Alcoholic"]
 
 // TagInput component defined outside to prevent re-creation on every render
 const TagInput = ({ label, icon: Icon, value, items, onInputChange, onAdd, onRemove, placeholder, color = "amber" }) => (
@@ -69,7 +68,6 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
     category: initialData?.category || "",
-    drinkType: initialData?.drinkType || "",
     baseType: initialData?.baseType || "",
     ingredients: initialData?.ingredients || [],
     allergens: initialData?.allergens || [],
@@ -113,7 +111,6 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
     // All mandatory except allergens and description
     if (!formData.name.trim()) return "Beverage name is required"
     if (!formData.category) return "Category is required"
-    if (!formData.drinkType) return "Drink type is required"
     if (!formData.baseType.trim()) return "Base Type is required"
     if (formData.ingredients.length === 0) return "At least one ingredient is required"
     if (!formData.price) return "Price is required"
@@ -142,7 +139,6 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
       const payload = {
         name: formData.name,
         category: formData.category && formData.category.trim() ? formData.category : null,
-        drinkType: formData.drinkType && formData.drinkType.trim() ? formData.drinkType : null,
         baseType: formData.baseType && formData.baseType.trim() ? formData.baseType : null,
         ingredients: formData.ingredients || [],
         allergens: formData.allergens || [],
@@ -164,7 +160,7 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
       onCreate(beverage)
       // Reset form
       setFormData({
-        name: "", category: "", drinkType: "", baseType: "",
+        name: "", category: "", baseType: "",
         ingredients: [], allergens: [], perfectPairing: [], price: "", sizeVol: "",
         isSignatureItem: false, flavorTags: [], description: "", photo: ""
       })
@@ -222,45 +218,24 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         />
       </div>
 
-      {/* Category & Drink Type */}
-      <div className="grid grid-cols-2 gap-3 w-full">
-        <div>
-          <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
-            <Tag className="w-4 h-4 text-amber-500" />
-            Category <span className="text-red-400">*</span>
-          </label>
-          <Select value={formData.category} onValueChange={v => updateField("category", v)}>
-            <SelectTrigger className="glass border-white/20 text-white h-10">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-white/20">
-              {CATEGORIES.map(cat => (
-                <SelectItem key={cat} value={cat} className="text-white hover:bg-white/10">
-                  {cat}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div>
-          <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
-            <Droplets className="w-4 h-4 text-amber-500" />
-            Drink Type <span className="text-red-400">*</span>
-          </label>
-          <Select value={formData.drinkType} onValueChange={v => updateField("drinkType", v)}>
-            <SelectTrigger className="glass border-white/20 text-white h-10">
-              <SelectValue placeholder="Select drink type" />
-            </SelectTrigger>
-            <SelectContent className="bg-[#1a1a1a] border-white/20">
-              {DRINK_TYPES.map(type => (
-                <SelectItem key={type} value={type} className="text-white hover:bg-white/10">
-                  {type}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Category (Alcoholic/Non-Alcoholic) */}
+      <div className="w-full">
+        <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
+          <Tag className="w-4 h-4 text-amber-500" />
+          Category <span className="text-red-400">*</span>
+        </label>
+        <Select value={formData.category} onValueChange={v => updateField("category", v)}>
+          <SelectTrigger className="glass border-white/20 text-white h-10">
+            <SelectValue placeholder="Alcoholic or Non-Alcoholic?" />
+          </SelectTrigger>
+          <SelectContent className="bg-[#1a1a1a] border-white/20">
+            {CATEGORIES.map(cat => (
+              <SelectItem key={cat} value={cat} className="text-white hover:bg-white/10">
+                {cat}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Type / Style (now baseType) */}
