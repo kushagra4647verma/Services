@@ -281,7 +281,7 @@ export default function BeverageDetail({ restaurantId }) {
             <div className="flex items-center justify-between">
               <span className="text-white/60 text-sm">Size</span>
               <span className="text-white text-xl font-bold">
-                {beverage.sizeVol || "—"}
+                {beverage.sizeVol ? `${beverage.sizeVol} ml` : "—"}
               </span>
             </div>
           </div>
@@ -447,11 +447,21 @@ export default function BeverageDetail({ restaurantId }) {
                   />
                 </div>
                 <div>
-                  <label className="text-sm text-white/80 mb-2 block">Size / Volume</label>
+                  <label className="text-sm text-white/80 mb-2 block">Size / Volume (ml)</label>
                   <Input
+                    type="number"
+                    step="any"
+                    min="0"
                     value={editData.sizeVol}
-                    onChange={e => updateField("sizeVol", e.target.value)}
-                    placeholder="e.g., 330ml"
+                    onChange={e => {
+                      const val = e.target.value
+                      if (val === '' || !isNaN(parseFloat(val))) {
+                        updateField("sizeVol", val)
+                      } else {
+                        alert("Please enter a valid number for Size/Volume")
+                      }
+                    }}
+                    placeholder="e.g., 330"
                     className="glass border-white/20 text-white h-10"
                   />
                 </div>

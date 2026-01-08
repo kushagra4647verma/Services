@@ -90,27 +90,27 @@ export default function UploadedFiles({
               )}
 
               {/* Action buttons */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 justify-center">
                 <Button
                   onClick={() => handleDelete(url)}
-                  size="sm"
+                  size="icon"
                   variant="outline"
-                  className="flex-1 h-8 glass border-white/20 text-red-400 text-xs hover:bg-red-500/20 hover:border-red-500/50"
+                  className="h-8 w-8 glass border-white/20 text-red-400 hover:bg-red-500/20 hover:border-red-500/50"
+                  title="Delete"
                 >
-                  <Trash2 className="w-3 h-3 mr-1" />
-                  Delete
+                  <Trash2 className="w-4 h-4" />
                 </Button>
 
-                <label className="flex-1">
+                <label>
                   <Button
                     asChild
-                    size="sm"
+                    size="icon"
                     variant="outline"
-                    className="w-full h-8 glass border-white/20 text-white text-xs hover:bg-amber-500/20 hover:border-amber-500/50 cursor-pointer"
+                    className="h-8 w-8 glass border-white/20 text-white hover:bg-amber-500/20 hover:border-amber-500/50 cursor-pointer"
+                    title="Replace"
                   >
                     <span>
-                      <RefreshCw className="w-3 h-3 mr-1" />
-                      Replace
+                      <RefreshCw className="w-4 h-4" />
                     </span>
                   </Button>
                   <input

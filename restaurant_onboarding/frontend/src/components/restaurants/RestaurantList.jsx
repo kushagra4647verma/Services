@@ -1,4 +1,4 @@
-import { Store, MapPin, Trash2, Star, CheckCircle2, XCircle } from "lucide-react"
+import { Store, MapPin, Trash2, Star, CheckCircle2, XCircle, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function RestaurantList({
@@ -6,10 +6,13 @@ export default function RestaurantList({
   onSelect,
   onDelete
 }) {
-  // Get first image from foodMenuPics or use a placeholder
+  // Get cover image or fallback to logo
   const getRestaurantImage = (restaurant) => {
-    if (restaurant.foodMenuPics && restaurant.foodMenuPics.length > 0) {
-      return restaurant.foodMenuPics[0]
+    if (restaurant.coverImage) {
+      return restaurant.coverImage
+    }
+    if (restaurant.logoImage) {
+      return restaurant.logoImage
     }
     return null
   }
@@ -87,14 +90,22 @@ export default function RestaurantList({
                     <span className="text-amber-500 font-semibold text-sm">New</span>
                   </div>
                 </div>
-                {r.foodMenuPics && r.foodMenuPics.length > 0 && (
+                {/* {r.foodMenuPics && r.foodMenuPics.length > 0 && (
                   <span className="text-white/60 text-xs">{r.foodMenuPics.length} doc(s)</span>
-                )}
+                )} */}
               </div>
               
               {/* Bio */}
               {r.bio && (
                 <p className="text-white/60 text-sm line-clamp-2">{r.bio}</p>
+              )}
+
+              {/* Incomplete Warning */}
+              {r.iscomplete === false && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                  <span className="text-amber-400 text-xs">Complete the form to get verified</span>
+                </div>
               )}
 
               {/* Tags */}

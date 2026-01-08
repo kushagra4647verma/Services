@@ -110,6 +110,8 @@ export async function createRestaurant(ownerId, body) {
     ownerId,
     phone: body.phone,
     address: body.address,
+    websiteurl: body.websiteurl,
+    contactemail: body.contactemail,
     location: toGeographyPoint(body.location),
     logoImage: body.logoImage,
     coverImage: body.coverImage,
@@ -125,7 +127,8 @@ export async function createRestaurant(ownerId, body) {
     instaLink: body.instaLink,
     facebookLink: body.facebookLink,
     twitterLink: body.twitterLink,
-    googleMapsLink: body.googleMapsLink
+    googleMapsLink: body.googleMapsLink,
+    iscomplete: body.iscomplete
   }
 
   // Remove undefined values
@@ -146,6 +149,8 @@ export async function updateRestaurant(restaurantId, body) {
   if (body.bio !== undefined) updatePayload.bio = body.bio
   if (body.phone !== undefined) updatePayload.phone = body.phone
   if (body.address !== undefined) updatePayload.address = body.address
+  if (body.websiteurl !== undefined) updatePayload.websiteurl = body.websiteurl
+  if (body.contactemail !== undefined) updatePayload.contactemail = body.contactemail
   if (body.location !== undefined)
     updatePayload.location = toGeographyPoint(body.location)
 
@@ -169,6 +174,9 @@ export async function updateRestaurant(restaurantId, body) {
   if (body.facebookLink !== undefined) updatePayload.facebookLink = body.facebookLink
   if (body.twitterLink !== undefined) updatePayload.twitterLink = body.twitterLink
   if (body.googleMapsLink !== undefined) updatePayload.googleMapsLink = body.googleMapsLink
+
+  // Completion status
+  if (body.iscomplete !== undefined) updatePayload.iscomplete = body.iscomplete
 
   const { data, error } = await updateRestaurantById(
     restaurantId,

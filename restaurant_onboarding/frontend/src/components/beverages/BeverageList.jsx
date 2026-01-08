@@ -215,7 +215,7 @@ export default function BeverageList({ restaurantId }) {
           <div className="glass rounded-xl p-3">
             <div className="flex items-center justify-between">
               <span className="text-white/60 text-xs">Size</span>
-              <span className="text-white text-lg font-bold">{b.sizeVol || "—"}</span>
+              <span className="text-white text-lg font-bold">{b.sizeVol ? `${b.sizeVol} ml` : "—"}</span>
             </div>
           </div>
         </div>

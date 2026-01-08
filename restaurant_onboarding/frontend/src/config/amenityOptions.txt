@@ -1,12 +1,20 @@
 WiFi
 Parking
+Valet Parking
 Outdoor Seating
+Indoor Seating
+Rooftop
 Live Music
+Live DJ
 Pet Friendly
 Wheelchair Accessible
+Air Conditioned
+Smoking Area
 Private Dining
-Bar
-Rooftop
-Air Conditioning
-Valet Parking
-Kids Play Area
+Bar Counter
+Lounge Area
+Dance Floor
+Pool Table
+Card Payment
+Digital Payment
+Amex Card

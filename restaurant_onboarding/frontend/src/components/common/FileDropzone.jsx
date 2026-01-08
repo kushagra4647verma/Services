@@ -1,27 +1,76 @@
-import { useCallback, useState } from "react"
+import { useCallback, useState, useEffect, useRef } from "react"
 import { useDropzone } from "react-dropzone"
 import { Upload, File, Image, X, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export default function FileDropzone({ onFilesSelected, maxFiles = 5, accept }) {
-  const [files, setFiles] = useState([])
+export default function FileDropzone({ onFilesSelected, maxFiles = 5, existingCount = 0, accept, files: externalFiles }) {
+  const [files, setFiles] = useState(externalFiles || [])
+  const prevExternalFilesRef = useRef(externalFiles)
+
+  // Sync internal state with external files prop when it changes
+  // Only update if externalFiles is provided and has actually changed
+  useEffect(() => {
+    if (externalFiles !== undefined && externalFiles !== prevExternalFilesRef.current) {
+      prevExternalFilesRef.current = externalFiles
+      setFiles(externalFiles)
+    }
+  }, [externalFiles])
+
+  // Calculate how many more files can be added
+  const remainingSlots = maxFiles - existingCount - files.length
+
+  const MAX_IMAGE_SIZE = 1 * 1024 * 1024 // 1MB for images
 
   const onDrop = useCallback(
     acceptedFiles => {
-      if (acceptedFiles.length > maxFiles) {
-        alert(`You can upload up to ${maxFiles} files`)
-        return
+      // Check image file sizes (1MB limit for images, no limit for PDFs)
+      const oversizedImages = acceptedFiles.filter(
+        f => f.type.startsWith('image/') && f.size > MAX_IMAGE_SIZE
+      )
+      
+      if (oversizedImages.length > 0) {
+        const names = oversizedImages.map(f => `${f.name} (${(f.size / (1024 * 1024)).toFixed(2)}MB)`).join('\n')
+        alert(`The following images exceed 1MB size limit:\n\n${names}\n\nPlease compress or resize these images.`)
+        // Filter out oversized images
+        acceptedFiles = acceptedFiles.filter(
+          f => !f.type.startsWith('image/') || f.size <= MAX_IMAGE_SIZE
+        )
+        if (acceptedFiles.length === 0) return
       }
-      // Add preview URLs for images
+
+      // Calculate total files after adding new ones
+      const totalAfterAdd = files.length + acceptedFiles.length + existingCount
+      
+      if (totalAfterAdd > maxFiles) {
+        const canAdd = maxFiles - existingCount - files.length
+        if (canAdd <= 0) {
+          alert(`Maximum ${maxFiles} files allowed. You already have ${existingCount + files.length} file(s).`)
+          return
+        }
+        
+        // Get files that will be kept vs ignored
+        const keptFiles = acceptedFiles.slice(0, canAdd)
+        const ignoredFiles = acceptedFiles.slice(canAdd)
+        
+        const keptNames = keptFiles.map(f => f.name).join(', ')
+        const ignoredNames = ignoredFiles.map(f => f.name).join(', ')
+        
+        alert(`Maximum ${maxFiles} files allowed. Only ${canAdd} file(s) added:\n\n✓ Kept: ${keptNames}\n\n✗ Ignored: ${ignoredNames}`)
+        
+        acceptedFiles = keptFiles
+      }
+      
+      // Add preview URLs for images and accumulate with existing files
       const filesWithPreview = acceptedFiles.map(file => 
         Object.assign(file, {
           preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : null
         })
       )
-      setFiles(filesWithPreview)
-      onFilesSelected(acceptedFiles)
+      const newFiles = [...files, ...filesWithPreview]
+      setFiles(newFiles)
+      onFilesSelected(newFiles)
     },
-    [onFilesSelected, maxFiles]
+    [onFilesSelected, maxFiles, existingCount, files]
   )
 
   const removeFile = (index) => {
@@ -33,7 +82,8 @@ export default function FileDropzone({ onFilesSelected, maxFiles = 5, accept }) 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: maxFiles > 1,
-    accept: accept
+    accept: accept,
+    disabled: remainingSlots <= 0
   })
 
   const getFileIcon = (file) => {
@@ -57,17 +107,21 @@ export default function FileDropzone({ onFilesSelected, maxFiles = 5, accept }) 
       {/* Dropzone */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
-          isDragActive 
-            ? 'border-amber-500 bg-amber-500/10' 
-            : 'border-white/20 hover:border-white/40 hover:bg-white/5'
+        className={`border-2 border-dashed rounded-xl p-6 text-center transition-all duration-200 ${
+          remainingSlots <= 0 
+            ? 'border-white/10 bg-white/5 cursor-not-allowed opacity-50'
+            : isDragActive 
+              ? 'border-amber-500 bg-amber-500/10 cursor-pointer' 
+              : 'border-white/20 hover:border-white/40 hover:bg-white/5 cursor-pointer'
         }`}
       >
         <input {...getInputProps()} />
         
         <Upload className={`w-8 h-8 mx-auto mb-3 ${isDragActive ? 'text-amber-500' : 'text-white/40'}`} />
         
-        {isDragActive ? (
+        {remainingSlots <= 0 ? (
+          <p className="text-white/40 font-medium">Maximum files reached</p>
+        ) : isDragActive ? (
           <p className="text-amber-500 font-medium">Drop files here…</p>
         ) : (
           <>
@@ -76,7 +130,12 @@ export default function FileDropzone({ onFilesSelected, maxFiles = 5, accept }) 
           </>
         )}
         
-        <p className="text-white/30 text-xs mt-3">Max {maxFiles} files</p>
+        <p className="text-white/30 text-xs mt-3">
+          {existingCount > 0 
+            ? `${existingCount + files.length} / ${maxFiles} files (${remainingSlots} remaining)`
+            : `Max ${maxFiles} files`
+          }
+        </p>
       </div>
 
       {/* Selected Files Preview */}

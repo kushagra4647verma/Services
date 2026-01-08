@@ -114,7 +114,7 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
     if (!formData.name.trim()) return "Beverage name is required"
     if (!formData.category) return "Category is required"
     if (!formData.drinkType) return "Drink type is required"
-    if (!formData.baseType.trim()) return "Type/Style is required"
+    if (!formData.baseType.trim()) return "Base Type is required"
     if (formData.ingredients.length === 0) return "At least one ingredient is required"
     if (!formData.price) return "Price is required"
     if (!formData.sizeVol.trim()) return "Size/Volume is required"
@@ -296,12 +296,22 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         <div>
           <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
             <Droplets className="w-4 h-4 text-amber-500" />
-            Size / Volume <span className="text-red-400">*</span>
+            Size / Volume (ml) <span className="text-red-400">*</span>
           </label>
           <Input
-            placeholder="e.g., 330ml, Large"
+            type="number"
+            step="any"
+            min="0"
+            placeholder="e.g., 330"
             value={formData.sizeVol}
-            onChange={e => updateField("sizeVol", e.target.value)}
+            onChange={e => {
+              const val = e.target.value
+              if (val === '' || !isNaN(parseFloat(val))) {
+                updateField("sizeVol", val)
+              } else {
+                alert("Please enter a valid number for Size/Volume")
+              }
+            }}
             className="glass border-white/20 text-white placeholder:text-white/40 h-10"
           />
         </div>
@@ -441,7 +451,14 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
           <div className="glass rounded-xl p-3 border border-white/20">
             <FileDropzone
               maxFiles={1}
-              onFilesSelected={files => setSelectedFile(files[0] || null)}
+              onFilesSelected={files => {
+                const file = files[0]
+                if (file && file.size > 1 * 1024 * 1024) {
+                  alert(`Image "${file.name}" exceeds 1MB size limit (${(file.size / (1024 * 1024)).toFixed(2)}MB). Please compress or resize the image.`)
+                  return
+                }
+                setSelectedFile(file || null)
+              }}
             />
           </div>
         )}

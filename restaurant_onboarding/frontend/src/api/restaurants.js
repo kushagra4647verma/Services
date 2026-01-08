@@ -3,6 +3,9 @@ import { apiFetch } from "../apiClient"
 export const getMyRestaurants = () =>
   apiFetch("/restaurants/me")
 
+export const getRestaurant = (restaurantId) =>
+  apiFetch(`/restaurants/${restaurantId}`)
+
 export const createRestaurant = data =>
   apiFetch("/restaurants", {
     method: "POST",

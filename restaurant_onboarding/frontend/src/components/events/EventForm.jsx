@@ -178,7 +178,14 @@ export default function EventForm({ restaurantId, onCreate, onCancel, initialDat
           <div className="glass rounded-xl p-3 border border-white/20">
             <FileDropzone
               maxFiles={1}
-              onFilesSelected={files => setSelectedFile(files[0] || null)}
+              onFilesSelected={files => {
+                const file = files[0]
+                if (file && file.size > 1 * 1024 * 1024) {
+                  alert(`Image "${file.name}" exceeds 1MB size limit (${(file.size / (1024 * 1024)).toFixed(2)}MB). Please compress or resize the image.`)
+                  return
+                }
+                setSelectedFile(file || null)
+              }}
             />
           </div>
         )}

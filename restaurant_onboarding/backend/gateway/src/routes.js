@@ -10,15 +10,15 @@ const router = express.Router()
 //   - onboarding-restaurant-service:5001
 //   - onboarding-beverage-service:5002
 //   - onboarding-event-service:5003
-const restaurantService = proxy("http://onboarding-restaurant-service:5001", {
+const restaurantService = proxy("http://restaurant-service:5001", {
   proxyReqPathResolver: req => req.originalUrl
 })
 
-const beverageService = proxy("http://onboarding-beverage-service:5002", {
+const beverageService = proxy("http://beverage-service:5002", {
   proxyReqPathResolver: req => req.originalUrl
 })
 
-const eventService = proxy("http://onboarding-event-service:5003", {
+const eventService = proxy("http://event-service:5003", {
   proxyReqPathResolver: req => req.originalUrl
 })
 

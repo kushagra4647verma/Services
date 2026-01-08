@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react"
 import BeverageList from "../beverages/BeverageList"
 import EventList from "../events/EventList"
-import UploadedFiles from "../common/UploadedFiles"
-import FileDropzone from "../common/FileDropzone"
 import RestaurantForm from "./RestaurantForm"
-import { uploadRestaurantFiles } from "../../utils/uploadRestaurantFiles"
-import { updateRestaurant, getLegalInfo, getBankDetails } from "../../api/restaurants"
+import { getLegalInfo, getBankDetails, getRestaurant } from "../../api/restaurants"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -15,8 +12,8 @@ import {
   DialogTitle
 } from "@/components/ui/dialog"
 import {
-  Store, FileText, Plus, Upload, X, Edit2, MapPin, Phone,
-  Link2, Clock, IndianRupee, Image, ExternalLink, Wine
+  Store, FileText, Edit2, MapPin, Phone,
+  Clock, IndianRupee, Image, ExternalLink, Wine, Shield, Mail, Globe, AlertTriangle
 } from "lucide-react"
 
 // Convert database integer to display string
@@ -51,20 +48,17 @@ export default function RestaurantDetail({
   restaurant,
   onRestaurantUpdated
 }) {
-  const [showUploader, setShowUploader] = useState(false)
-  const [selectedFiles, setSelectedFiles] = useState([])
-  const [uploading, setUploading] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [legalInfo, setLegalInfo] = useState(null)
   const [bankDetails, setBankDetails] = useState(null)
   const [loadingExtra, setLoadingExtra] = useState(false)
 
-  // Load legal info on mount if restaurant serves alcohol (to show liquor license)
+  // Load legal info on mount
   useEffect(() => {
-    if (restaurant?.id && restaurant?.hasAlcohol) {
+    if (restaurant?.id) {
       loadLegalInfo()
     }
-  }, [restaurant?.id, restaurant?.hasAlcohol])
+  }, [restaurant?.id])
 
   // Load legal and bank info when opening edit modal
   useEffect(() => {
@@ -98,52 +92,50 @@ export default function RestaurantDetail({
     }
   }
 
-  async function handleFilesUpdated(newFiles) {
-    const updated = await updateRestaurant(restaurant.id, {
-      foodMenuPics: newFiles
-    })
-    onRestaurantUpdated(updated)
-  }
-
-  async function handleUploadDocuments() {
-    if (selectedFiles.length === 0) {
-      alert("Please select files")
-      return
-    }
-
-    try {
-      setUploading(true)
-
-      const urls = await uploadRestaurantFiles(
-        restaurant.id,
-        selectedFiles
-      )
-
-      const updated = await updateRestaurant(restaurant.id, {
-        foodMenuPics: [
-          ...(restaurant.foodMenuPics || []),
-          ...urls
-        ]
-      })
-
-      onRestaurantUpdated(updated)
-
-      setSelectedFiles([])
-      setShowUploader(false)
-    } catch (err) {
-      console.error(err)
-      alert("Failed to upload documents")
-    } finally {
-      setUploading(false)
-    }
-  }
-
   function handleEditComplete(updatedRestaurant) {
     onRestaurantUpdated(updatedRestaurant)
   }
 
+  async function handleEditModalClose() {
+    setShowEditModal(false)
+    // Refresh restaurant and legal info after edit
+    try {
+      const [freshRestaurant, freshLegal] = await Promise.all([
+        getRestaurant(restaurant.id).catch(() => null),
+        getLegalInfo(restaurant.id).catch(() => null)
+      ])
+      if (freshRestaurant) {
+        onRestaurantUpdated(freshRestaurant)
+      }
+      if (freshLegal) {
+        setLegalInfo(freshLegal)
+      }
+    } catch (err) {
+      console.error("Failed to refresh data:", err)
+    }
+  }
+
   return (
     <div className="space-y-6">
+      {/* Incomplete Warning Banner */}
+      {restaurant.iscomplete === false && (
+        <div className="glass rounded-xl p-4 border border-amber-500/40 bg-amber-500/10 flex items-center gap-3">
+          <AlertTriangle className="w-6 h-6 text-amber-500 flex-shrink-0" />
+          <div className="flex-1">
+            <p className="text-amber-400 font-medium">Form Incomplete</p>
+            <p className="text-amber-400/80 text-sm">Please complete all required fields to get your restaurant verified.</p>
+          </div>
+          <Button
+            size="sm"
+            onClick={() => setShowEditModal(true)}
+            className="gradient-amber text-black font-medium"
+          >
+            <Edit2 className="w-4 h-4 mr-1" />
+            Complete Now
+          </Button>
+        </div>
+      )}
+
       {/* Restaurant Header with Cover */}
       <div className="glass-strong rounded-2xl overflow-hidden">
         {/* Cover Image */}
@@ -197,9 +189,19 @@ export default function RestaurantDetail({
                     <Phone className="w-3 h-3" /> {restaurant.phone}
                   </span>
                 )}
+                {restaurant.contactemail && (
+                  <a href={`mailto:${restaurant.contactemail}`} className="text-white/50 text-sm flex items-center gap-1 hover:text-white/70">
+                    <Mail className="w-3 h-3" /> {restaurant.contactemail}
+                  </a>
+                )}
+                {restaurant.websiteurl && (
+                  <a href={restaurant.websiteurl} target="_blank" rel="noopener noreferrer" className="text-blue-400 text-sm flex items-center gap-1 hover:text-blue-300">
+                    <Globe className="w-3 h-3" /> Website <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
                 {restaurant.priceRange && (
-                  <span className="text-amber-400 text-sm flex items-center gap-1">
-                    <IndianRupee className="w-3 h-3" /> {formatPriceRange(restaurant.priceRange)}
+                  <span className="text-amber-400 text-sm font-medium">
+                    {formatPriceRange(restaurant.priceRange)}
                   </span>
                 )}
                 {restaurant.hasReservation && (
@@ -333,29 +335,6 @@ export default function RestaurantDetail({
         </div>
       </div>
 
-      {/* Gallery Section */}
-      {restaurant.gallery?.length > 0 && (
-        <div className="glass rounded-2xl p-5">
-          <h3 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
-            <Image className="w-5 h-5 text-amber-500" />
-            Gallery
-          </h3>
-          <div className="grid grid-cols-3 gap-2">
-            {restaurant.gallery.map((url, idx) => (
-              <a
-                key={idx}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-amber-500/50 transition-colors"
-              >
-                <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
-              </a>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Beverages Section */}
       <div className="glass rounded-2xl p-5">
         <h3 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
@@ -374,68 +353,202 @@ export default function RestaurantDetail({
 
       {/* Documents Section */}
       <div className="glass rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-white text-lg font-semibold flex items-center gap-2">
-            <FileText className="w-5 h-5 text-amber-500" />
-            Documents
-          </h3>
-          {!showUploader && (
-            <Button
-              onClick={() => setShowUploader(true)}
-              variant="outline"
-              size="sm"
-              className="glass border-white/20 text-white hover:bg-white/10"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Document
-            </Button>
+        <h3 className="text-white text-lg font-semibold mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5 text-amber-500" />
+          All Documents & Media
+        </h3>
+
+        <div className="space-y-6">
+          {/* Logo Image */}
+          {restaurant.logoImage && (
+            <div>
+              <h4 className="text-white/80 text-sm font-medium mb-2 flex items-center gap-2">
+                <Image className="w-4 h-4 text-amber-500" />
+                Logo Image
+              </h4>
+              <a
+                href={restaurant.logoImage}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block w-20 h-20 rounded-xl overflow-hidden border border-white/20 hover:border-amber-500/50 transition-colors"
+              >
+                <img src={restaurant.logoImage} alt="Logo" className="w-full h-full object-cover" />
+              </a>
+            </div>
+          )}
+
+          {/* Cover Image */}
+          {restaurant.coverImage && (
+            <div>
+              <h4 className="text-white/80 text-sm font-medium mb-2 flex items-center gap-2">
+                <Image className="w-4 h-4 text-amber-500" />
+                Cover Image
+              </h4>
+              <a
+                href={restaurant.coverImage}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block h-32 rounded-xl overflow-hidden border border-white/20 hover:border-amber-500/50 transition-colors"
+              >
+                <img src={restaurant.coverImage} alt="Cover" className="h-full object-cover" />
+              </a>
+            </div>
+          )}
+
+          {/* Gallery Images */}
+          {restaurant.gallery?.length > 0 && (
+            <div>
+              <h4 className="text-white/80 text-sm font-medium mb-2 flex items-center gap-2">
+                <Image className="w-4 h-4 text-amber-500" />
+                Gallery Images ({restaurant.gallery.length})
+              </h4>
+              <div className="grid grid-cols-4 gap-2">
+                {restaurant.gallery.map((url, idx) => (
+                  <a
+                    key={idx}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-amber-500/50 transition-colors"
+                  >
+                    <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Food Menu */}
+          {restaurant.foodMenuPics?.length > 0 && (
+            <div>
+              <h4 className="text-white/80 text-sm font-medium mb-2 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-amber-500" />
+                Food Menu ({restaurant.foodMenuPics.length})
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {restaurant.foodMenuPics.map((url, idx) => {
+                  const isPdf = url.toLowerCase().endsWith('.pdf')
+                  return (
+                    <a
+                      key={idx}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`${isPdf ? 'p-4 flex flex-col items-center justify-center' : 'aspect-square'} rounded-lg overflow-hidden border border-white/10 hover:border-amber-500/50 transition-colors bg-white/5`}
+                    >
+                      {isPdf ? (
+                        <>
+                          <FileText className="w-8 h-8 text-red-400 mb-1" />
+                          <span className="text-white/60 text-xs">PDF</span>
+                        </>
+                      ) : (
+                        <img src={url} alt={`Menu ${idx + 1}`} className="w-full h-full object-cover" />
+                      )}
+                    </a>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Legal Documents */}
+          {legalInfo && (
+            <div>
+              <h4 className="text-white/80 text-sm font-medium mb-3 flex items-center gap-2">
+                <Shield className="w-4 h-4 text-amber-500" />
+                Legal Documents
+              </h4>
+              <div className="space-y-2">
+                {/* FSSAI Certificate */}
+                {legalInfo.fssaicertificate && (
+                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <FileText className="w-4 h-4 text-green-400 flex-shrink-0" />
+                    <span className="text-white/80 text-sm flex-1">FSSAI Certificate</span>
+                    {Array.isArray(legalInfo.fssaicertificate) ? (
+                      <div className="flex gap-1">
+                        {legalInfo.fssaicertificate.map((url, idx) => (
+                          <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
+                             className="text-amber-400 hover:text-amber-300 text-xs px-2 py-1 bg-amber-500/10 rounded">
+                            #{idx + 1}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <a href={legalInfo.fssaicertificate} target="_blank" rel="noopener noreferrer"
+                         className="text-amber-400 hover:text-amber-300 text-sm flex items-center gap-1">
+                        View <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* GST Certificate */}
+                {legalInfo.gstcertificate && (
+                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <FileText className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                    <span className="text-white/80 text-sm flex-1">GST Certificate</span>
+                    <a href={legalInfo.gstcertificate} target="_blank" rel="noopener noreferrer"
+                       className="text-amber-400 hover:text-amber-300 text-sm flex items-center gap-1">
+                      View <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+
+                {/* PAN Card */}
+                {legalInfo.panimage && (
+                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <FileText className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                    <span className="text-white/80 text-sm flex-1">PAN Card</span>
+                    <a href={legalInfo.panimage} target="_blank" rel="noopener noreferrer"
+                       className="text-amber-400 hover:text-amber-300 text-sm flex items-center gap-1">
+                      View <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+
+                {/* BBMP Trade License */}
+                {legalInfo.bbmptradelicense && (
+                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <FileText className="w-4 h-4 text-orange-400 flex-shrink-0" />
+                    <span className="text-white/80 text-sm flex-1">BBMP Trade License</span>
+                    <a href={legalInfo.bbmptradelicense} target="_blank" rel="noopener noreferrer"
+                       className="text-amber-400 hover:text-amber-300 text-sm flex items-center gap-1">
+                      View <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+
+                {/* Liquor License */}
+                {legalInfo.liquorlicense && (
+                  <div className="flex items-center gap-3 p-2 bg-white/5 rounded-lg">
+                    <Wine className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    <span className="text-white/80 text-sm flex-1">Liquor License</span>
+                    <a href={legalInfo.liquorlicense} target="_blank" rel="noopener noreferrer"
+                       className="text-amber-400 hover:text-amber-300 text-sm flex items-center gap-1">
+                      View <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Show message if no documents at all */}
+          {!restaurant.logoImage && !restaurant.coverImage && !restaurant.gallery?.length && 
+           !restaurant.foodMenuPics?.length && !legalInfo && (
+            <p className="text-white/40 text-center py-4">No documents uploaded yet</p>
           )}
         </div>
-
-        <UploadedFiles
-          files={restaurant.foodMenuPics || []}
-          restaurantId={restaurant.id}
-          onFilesUpdated={handleFilesUpdated}
-        />
-
-        {showUploader && (
-          <div className="mt-4 glass-strong rounded-xl p-4 border border-white/20">
-            <FileDropzone
-              maxFiles={5}
-              onFilesSelected={setSelectedFiles}
-            />
-
-            {selectedFiles.length > 0 && (
-              <p className="text-white/60 text-sm mt-2">{selectedFiles.length} file(s) selected</p>
-            )}
-
-            <div className="flex gap-3 mt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowUploader(false)
-                  setSelectedFiles([])
-                }}
-                className="flex-1 glass border-white/20 text-white hover:bg-white/10"
-              >
-                <X className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
-              <Button
-                onClick={handleUploadDocuments}
-                disabled={uploading}
-                className="flex-1 gradient-amber text-black font-semibold hover:opacity-90"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                {uploading ? "Uploading..." : "Upload"}
-              </Button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Edit Modal */}
-      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+      <Dialog open={showEditModal} onOpenChange={(open) => {
+        if (!open) {
+          handleEditModalClose()
+        } else {
+          setShowEditModal(true)
+        }
+      }}>
         <DialogContent className="glass-strong border-white/20 text-white max-w-lg max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
@@ -455,8 +568,8 @@ export default function RestaurantDetail({
                 editLegalInfo={legalInfo}
                 editBankDetails={bankDetails}
                 onRestaurantUpdated={handleEditComplete}
-                onComplete={() => setShowEditModal(false)}
-                onCancel={() => setShowEditModal(false)}
+                onComplete={handleEditModalClose}
+                onCancel={handleEditModalClose}
               />
             </div>
           )}

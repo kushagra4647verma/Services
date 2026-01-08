@@ -15,21 +15,21 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { CUISINE_OPTIONS, AMENITY_OPTIONS, getDefaultOpeningHours } from "../../config/restaurantOptions"
 import {
   Store, FileText, MapPin, Upload, X, ChevronRight, ChevronLeft,
-  Image, Link2, Phone, Building2, Shield, Landmark, Check, Plus, Clock, UtensilsCrossed
+  Image, Link2, Phone, Building2, Shield, Landmark, Check, Plus, Clock, UtensilsCrossed, Mail, Globe, Save
 } from "lucide-react"
 
 const STEPS = [
   { id: 1, title: "Basic Info", icon: Store },
   { id: 2, title: "Branding", icon: Image },
-  { id: 3, title: "Details", icon: FileText },
-  { id: 4, title: "Menu", icon: UtensilsCrossed },
-  { id: 5, title: "Social", icon: Link2 },
-  { id: 6, title: "Legal", icon: Shield },
-  { id: 7, title: "Bank", icon: Landmark },
+  { id: 3, title: "Legal", icon: Shield },
+  { id: 4, title: "Operational", icon: FileText },
+  { id: 5, title: "Menu", icon: UtensilsCrossed },
+  { id: 6, title: "Social", icon: Link2 },
+  { id: 7, title: "Financial", icon: Landmark },
 ]
 
 // Mandatory steps that must be completed before submission
-const MANDATORY_STEPS = [1, 2, 3, 4, 6] // Basic Info, Branding, Details, Menu, Legal
+const MANDATORY_STEPS = [1, 2, 3, 4, 5] // Basic Info, Branding, Legal, Operational, Menu
 
 // Price range: display string <-> database integer
 const PRICE_RANGE_OPTIONS = [
@@ -62,6 +62,68 @@ function parseOpeningHours(hoursData) {
   return hoursData
 }
 
+// Parse location from various formats (object, string, WKB hex, null)
+function parseLocation(locationData) {
+  if (!locationData) return null
+  
+  // Already a valid object with lat/lng
+  if (typeof locationData === 'object' && 
+      typeof locationData.lat === 'number' && 
+      typeof locationData.lng === 'number') {
+    return locationData
+  }
+  
+  // Try parsing as JSON string
+  if (typeof locationData === 'string') {
+    try {
+      const parsed = JSON.parse(locationData)
+      if (typeof parsed.lat === 'number' && typeof parsed.lng === 'number') {
+        return parsed
+      }
+    } catch {
+      // Not valid JSON, try WKB hex format
+      const wkbResult = parseWkbHexToLatLng(locationData)
+      if (wkbResult) return wkbResult
+    }
+  }
+  
+  return null
+}
+
+// Parse WKB hex format to {lat, lng} (PostGIS geography format)
+function parseWkbHexToLatLng(wkbHex) {
+  if (!wkbHex || typeof wkbHex !== 'string' || wkbHex.length < 50) return null
+  
+  try {
+    // WKB Point with SRID format - coordinates start at position 18
+    const coordsHex = wkbHex.substring(18)
+    if (coordsHex.length < 32) return null
+    
+    const lngHex = coordsHex.substring(0, 16)
+    const latHex = coordsHex.substring(16, 32)
+    
+    const lng = parseHexToDouble(lngHex)
+    const lat = parseHexToDouble(latHex)
+    
+    if (isNaN(lat) || isNaN(lng)) return null
+    return { lat, lng }
+  } catch {
+    return null
+  }
+}
+
+// Parse 16-char hex string to IEEE 754 double (little-endian)
+function parseHexToDouble(hex) {
+  const bytes = []
+  for (let i = 0; i < 16; i += 2) {
+    bytes.push(parseInt(hex.substring(i, i + 2), 16))
+  }
+  const buffer = new ArrayBuffer(8)
+  const view = new DataView(buffer)
+  bytes.forEach((b, i) => view.setUint8(i, b))
+  return view.getFloat64(0, true)
+}
+
 export default function RestaurantForm({
   onCreate,
   onRestaurantUpdated,
@@ -79,6 +141,7 @@ export default function RestaurantForm({
 
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [savingProgress, setSavingProgress] = useState(false)
   const [createdRestaurantId, setCreatedRestaurantId] = useState(editRestaurant?.id || null)
 
   // Step 1: Basic Info
@@ -86,7 +149,9 @@ export default function RestaurantForm({
   const [bio, setBio] = useState(editRestaurant?.bio || "")
   const [phone, setPhone] = useState(editRestaurant?.phone || "")
   const [address, setAddress] = useState(editRestaurant?.address || "")
-  const [location, setLocation] = useState(editRestaurant?.location || null)
+  const [websiteUrl, setWebsiteUrl] = useState(editRestaurant?.websiteurl || "")
+  const [contactEmail, setContactEmail] = useState(editRestaurant?.contactemail || "")
+  const [location, setLocation] = useState(parseLocation(editRestaurant?.location))
   const [locationError, setLocationError] = useState(false)
 
   // Get current location on mount if not in edit mode
@@ -132,7 +197,14 @@ export default function RestaurantForm({
   // Step 5: Legal Info (lowercase as per DB schema)
   const [fssailicensenumber, setFssaiLicenseNumber] = useState(editLegalInfo?.fssailicensenumber || "")
   const [fssaiCertFiles, setFssaiCertFiles] = useState([])
-  const [fssaicertificate, setFssaiCertificate] = useState(editLegalInfo?.fssaicertificate || null)
+  const [fssaicertificate, setFssaiCertificate] = useState(
+    // Handle both array (new) and single string (legacy) formats
+    Array.isArray(editLegalInfo?.fssaicertificate) 
+      ? editLegalInfo.fssaicertificate 
+      : editLegalInfo?.fssaicertificate 
+        ? [editLegalInfo.fssaicertificate] 
+        : []
+  )
   const [gstnumber, setGstNumber] = useState(editLegalInfo?.gstnumber || "")
   const [gstCertFiles, setGstCertFiles] = useState([])
   const [gstcertificate, setGstCertificate] = useState(editLegalInfo?.gstcertificate || null)
@@ -184,6 +256,16 @@ export default function RestaurantForm({
       alert("Phone number is required")
       return false
     }
+    if (!contactEmail.trim()) {
+      alert("Contact email is required")
+      return false
+    }
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(contactEmail)) {
+      alert("Please enter a valid email address")
+      return false
+    }
     if (!address.trim()) {
       alert("Address is required")
       return false
@@ -193,6 +275,30 @@ export default function RestaurantForm({
       return false
     }
     return true
+  }
+
+  // Check if mandatory fields are filled for a step (without alerts) - for green tick indicator
+  function isStepComplete(step) {
+    switch (step) {
+      case 1: // Basic Info
+        return name.trim() && bio.trim() && phone.trim() && contactEmail.trim() && address.trim() && 
+               location && typeof location.lat === 'number' && typeof location.lng === 'number'
+      case 2: // Branding
+        return (logoImage || logoFiles.length > 0) && (coverImage || coverFiles.length > 0) && 
+               (gallery.length > 0 || galleryFiles.length > 0)
+      case 3: // Legal
+        return fssailicensenumber.trim() && (fssaicertificate.length > 0 || fssaiCertFiles.length > 0) &&
+               gstnumber.trim() && (gstcertificate || gstCertFiles.length > 0) &&
+               pannumber.trim() && (panimage || panImageFiles.length > 0) &&
+               (bbmptradelicense || bbmpLicenseFiles.length > 0) &&
+               (!hasAlcohol || (liquorlicense || liquorLicenseFiles.length > 0))
+      case 4: // Operational
+        return cuisineTags.length > 0 && amenities.length > 0 && priceRange && openingHours.some(day => !day.isClosed)
+      case 5: // Menu
+        return foodMenuPics.length > 0 || menuFiles.length > 0
+      default:
+        return true
+    }
   }
 
   function validateBranding() {
@@ -246,7 +352,7 @@ export default function RestaurantForm({
       alert("FSSAI License Number is required")
       return false
     }
-    if (!fssaicertificate && fssaiCertFiles.length === 0) {
+    if (fssaicertificate.length === 0 && fssaiCertFiles.length === 0) {
       alert("FSSAI Certificate is required")
       return false
     }
@@ -283,9 +389,9 @@ export default function RestaurantForm({
     switch (step) {
       case 1: return validateBasicInfo()
       case 2: return validateBranding()
-      case 3: return validateDetails()
-      case 4: return validateMenu()
-      case 6: return validateLegal()
+      case 3: return validateLegal()
+      case 4: return validateDetails()
+      case 5: return validateMenu()
       default: return true
     }
   }
@@ -320,6 +426,8 @@ export default function RestaurantForm({
         bio,
         phone,
         address,
+        websiteurl: websiteUrl,
+        contactemail: contactEmail,
         ...(finalLocation?.lat && finalLocation?.lng ? { location: finalLocation } : {})
       }
 
@@ -374,20 +482,25 @@ export default function RestaurantForm({
         instaLink,
         facebookLink,
         twitterLink,
-        googleMapsLink
+        googleMapsLink,
+        iscomplete: true // Final submit means all mandatory fields are validated
       })
       onRestaurantUpdated?.(updated)
 
       // Step 5: Legal info
-      let newFssaiCert = fssaicertificate
+      let newFssaiCerts = [...fssaicertificate]
       let newGstCert = gstcertificate
       let newPanImg = panimage
       let newBbmpLic = bbmptradelicense
       let newLiquorLic = liquorlicense
 
       if (fssaiCertFiles.length > 0) {
-        newFssaiCert = await uploadSingleFile(restaurantId, fssaiCertFiles[0], "legal/fssai")
-        setFssaiCertificate(newFssaiCert)
+        // Upload all new FSSAI certificate files and append to existing
+        const uploadedFssaiCerts = await Promise.all(
+          fssaiCertFiles.map(file => uploadSingleFile(restaurantId, file, "legal/fssai"))
+        )
+        newFssaiCerts = [...newFssaiCerts, ...uploadedFssaiCerts]
+        setFssaiCertificate(newFssaiCerts)
       }
       if (gstCertFiles.length > 0) {
         newGstCert = await uploadSingleFile(restaurantId, gstCertFiles[0], "legal/gst")
@@ -408,7 +521,7 @@ export default function RestaurantForm({
 
       await updateLegalInfo(restaurantId, {
         fssailicensenumber,
-        fssaicertificate: newFssaiCert,
+        fssaicertificate: newFssaiCerts,
         gstnumber,
         gstcertificate: newGstCert,
         pannumber,
@@ -444,6 +557,173 @@ export default function RestaurantForm({
     }
   }
 
+  // Check if all mandatory steps are complete (for isComplete field)
+  function areAllMandatoryStepsComplete() {
+    return MANDATORY_STEPS.every(step => isStepComplete(step))
+  }
+
+  // Save progress without requiring all mandatory fields
+  async function handleSaveProgress() {
+    // Must have at least a name to save
+    if (!name.trim()) {
+      alert("Please enter at least a restaurant name to save progress")
+      return
+    }
+
+    setSavingProgress(true)
+    try {
+      let finalLocation = location
+      if (finalLocation && typeof finalLocation.lat !== 'number') {
+        finalLocation = null
+      }
+
+      let restaurantId = createdRestaurantId
+
+      // Check if all mandatory steps are complete
+      const isComplete = areAllMandatoryStepsComplete()
+
+      // Create or update basic info
+      const basicPayload = {
+        name,
+        bio: bio || null,
+        phone: phone || null,
+        address: address || null,
+        websiteurl: websiteUrl || null,
+        contactemail: contactEmail || null,
+        iscomplete: isComplete,
+        ...(finalLocation?.lat && finalLocation?.lng ? { location: finalLocation } : {})
+      }
+
+      if (isEditMode || restaurantId) {
+        await updateRestaurant(restaurantId, basicPayload)
+      } else {
+        const restaurant = await createRestaurant(basicPayload)
+        restaurantId = restaurant.id
+        setCreatedRestaurantId(restaurantId)
+      }
+
+      // Upload any files that have been selected
+      let newLogoUrl = logoImage
+      let newCoverUrl = coverImage
+      let newGalleryUrls = [...gallery]
+
+      if (logoFiles.length > 0) {
+        newLogoUrl = await uploadSingleFile(restaurantId, logoFiles[0], "logo")
+        setLogoImage(newLogoUrl)
+        setLogoFiles([])
+      }
+      if (coverFiles.length > 0) {
+        newCoverUrl = await uploadSingleFile(restaurantId, coverFiles[0], "cover")
+        setCoverImage(newCoverUrl)
+        setCoverFiles([])
+      }
+      if (galleryFiles.length > 0) {
+        const uploadedGallery = await uploadRestaurantFiles(restaurantId, galleryFiles, "gallery")
+        newGalleryUrls = [...newGalleryUrls, ...uploadedGallery]
+        setGallery(newGalleryUrls)
+        setGalleryFiles([])
+      }
+
+      let newMenuPics = [...foodMenuPics]
+      if (menuFiles.length > 0) {
+        const uploadedMenus = await uploadRestaurantFiles(restaurantId, menuFiles, "menus")
+        newMenuPics = [...newMenuPics, ...uploadedMenus]
+        setFoodMenuPics(newMenuPics)
+        setMenuFiles([])
+      }
+
+      // Update restaurant with all current data
+      await updateRestaurant(restaurantId, {
+        logoImage: newLogoUrl,
+        coverImage: newCoverUrl,
+        gallery: newGalleryUrls,
+        cuisineTags: cuisineTags.length > 0 ? cuisineTags : null,
+        amenities: amenities.length > 0 ? amenities : null,
+        priceRange: priceRange ? priceRangeToDb(priceRange) : null,
+        hasReservation,
+        reservationLink: hasReservation ? reservationLink : null,
+        openingHours: JSON.stringify(openingHours),
+        foodMenuPics: newMenuPics,
+        hasAlcohol,
+        instaLink: instaLink || null,
+        facebookLink: facebookLink || null,
+        twitterLink: twitterLink || null,
+        googleMapsLink: googleMapsLink || null,
+        iscomplete: isComplete
+      })
+
+      // Upload legal documents if any
+      let newFssaiCerts = [...fssaicertificate]
+      let newGstCert = gstcertificate
+      let newPanImg = panimage
+      let newBbmpLic = bbmptradelicense
+      let newLiquorLic = liquorlicense
+
+      if (fssaiCertFiles.length > 0) {
+        const uploadedFssaiCerts = await Promise.all(
+          fssaiCertFiles.map(file => uploadSingleFile(restaurantId, file, "legal/fssai"))
+        )
+        newFssaiCerts = [...newFssaiCerts, ...uploadedFssaiCerts]
+        setFssaiCertificate(newFssaiCerts)
+        setFssaiCertFiles([])
+      }
+      if (gstCertFiles.length > 0) {
+        newGstCert = await uploadSingleFile(restaurantId, gstCertFiles[0], "legal/gst")
+        setGstCertificate(newGstCert)
+        setGstCertFiles([])
+      }
+      if (panImageFiles.length > 0) {
+        newPanImg = await uploadSingleFile(restaurantId, panImageFiles[0], "legal/pan")
+        setPanImage(newPanImg)
+        setPanImageFiles([])
+      }
+      if (bbmpLicenseFiles.length > 0) {
+        newBbmpLic = await uploadSingleFile(restaurantId, bbmpLicenseFiles[0], "legal/bbmp")
+        setBbmpTradeLicense(newBbmpLic)
+        setBbmpLicenseFiles([])
+      }
+      if (hasAlcohol && liquorLicenseFiles.length > 0) {
+        newLiquorLic = await uploadSingleFile(restaurantId, liquorLicenseFiles[0], "legal/liquor")
+        setLiquorLicense(newLiquorLic)
+        setLiquorLicenseFiles([])
+      }
+
+      // Save legal info if any fields are filled
+      if (fssailicensenumber || newFssaiCerts.length > 0 || gstnumber || newGstCert || pannumber || newPanImg || newBbmpLic || newLiquorLic) {
+        await updateLegalInfo(restaurantId, {
+          fssailicensenumber: fssailicensenumber || null,
+          fssaicertificate: newFssaiCerts,
+          gstnumber: gstnumber || null,
+          gstcertificate: newGstCert,
+          pannumber: pannumber || null,
+          panimage: newPanImg,
+          bbmptradelicense: newBbmpLic,
+          liquorlicense: hasAlcohol ? newLiquorLic : null
+        })
+      }
+
+      // Save bank details if any fields are filled
+      if (accountnumber || ifsccode) {
+        await updateBankDetails(restaurantId, {
+          accountnumber: accountnumber || null,
+          ifsccode: ifsccode || null
+        })
+      }
+
+      alert(isComplete 
+        ? "Progress saved! All required fields are complete." 
+        : "Progress saved! Please complete all required fields to get verified."
+      )
+      
+      onRestaurantUpdated?.({ id: restaurantId, iscomplete: isComplete })
+    } catch (err) {
+      console.error(err)
+      alert("Failed to save progress. Please try again.")
+    } finally {
+      setSavingProgress(false)
+    }
+  }
+
   // Handle next step navigation
   function handleNextStep() {
     // Validate current step if it's mandatory
@@ -451,7 +731,7 @@ export default function RestaurantForm({
       return
     }
     
-    if (currentStep < 6) {
+    if (currentStep < 7) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -545,6 +825,34 @@ export default function RestaurantForm({
 
             <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
+                <Mail className="w-4 h-4 text-amber-500" />
+                Contact Email <span className="text-red-400">*</span>
+              </label>
+              <Input
+                type="email"
+                placeholder="contact@yourrestaurant.com"
+                value={contactEmail}
+                onChange={e => setContactEmail(e.target.value)}
+                className="glass border-white/20 text-white placeholder:text-white/40 h-12 w-full"
+              />
+            </div>
+
+            <div className="w-full">
+              <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
+                <Globe className="w-4 h-4 text-amber-500" />
+                Website URL
+              </label>
+              <Input
+                type="url"
+                placeholder="https://www.yourrestaurant.com"
+                value={websiteUrl}
+                onChange={e => setWebsiteUrl(e.target.value)}
+                className="glass border-white/20 text-white placeholder:text-white/40 h-12 w-full"
+              />
+            </div>
+
+            <div className="w-full">
+              <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-amber-500" />
                 Address <span className="text-red-400">*</span>
               </label>
@@ -600,8 +908,7 @@ export default function RestaurantForm({
                 </div>
               ) : (
                 <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
-                  <FileDropzone maxFiles={1} accept={{ "image/*": [] }} onFilesSelected={setLogoFiles} />
-                  {logoFiles.length > 0 && <p className="text-white/60 text-sm mt-2 truncate">{logoFiles[0].name}</p>}
+                  <FileDropzone maxFiles={1} accept={{ "image/*": [] }} files={logoFiles} onFilesSelected={setLogoFiles} />
                 </div>
               )}
             </div>
@@ -625,8 +932,7 @@ export default function RestaurantForm({
                 </div>
               ) : (
                 <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
-                  <FileDropzone maxFiles={1} accept={{ "image/*": [] }} onFilesSelected={setCoverFiles} />
-                  {coverFiles.length > 0 && <p className="text-white/60 text-sm mt-2 truncate">{coverFiles[0].name}</p>}
+                  <FileDropzone maxFiles={1} accept={{ "image/*": [] }} files={coverFiles} onFilesSelected={setCoverFiles} />
                 </div>
               )}
             </div>
@@ -637,7 +943,7 @@ export default function RestaurantForm({
                 Gallery Images <span className="text-red-400">*</span>
               </label>
               {gallery.length > 0 && (
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   {gallery.map((url, idx) => (
                     <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-white/20">
                       <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
@@ -654,14 +960,13 @@ export default function RestaurantForm({
                 </div>
               )}
               <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
-                <FileDropzone maxFiles={5} accept={{ "image/*": [] }} onFilesSelected={setGalleryFiles} />
-                {galleryFiles.length > 0 && <p className="text-white/60 text-sm mt-2">{galleryFiles.length} new image(s) selected</p>}
+                <FileDropzone maxFiles={5} existingCount={gallery.length} accept={{ "image/*": [] }} files={galleryFiles} onFilesSelected={setGalleryFiles} />
               </div>
             </div>
           </div>
         )
 
-      case 3:
+      case 4:
         return (
           <div className="space-y-5">
             <div>
@@ -754,7 +1059,9 @@ export default function RestaurantForm({
                 <Clock className="w-4 h-4 text-amber-500" />
                 Opening Hours <span className="text-red-400">*</span>
               </label>
-              <div className="glass rounded-xl border border-white/20 overflow-hidden">
+              
+              {/* Desktop Table View */}
+              <div className="hidden sm:block glass rounded-xl border border-white/20 overflow-hidden">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-white/10">
@@ -798,11 +1105,55 @@ export default function RestaurantForm({
                   </tbody>
                 </table>
               </div>
+
+              {/* Mobile Card View */}
+              <div className="sm:hidden space-y-2">
+                {openingHours.map((dayInfo, idx) => (
+                  <div key={dayInfo.day} className="glass rounded-xl border border-white/20 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-medium text-sm">{dayInfo.day}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/50 text-xs">Closed</span>
+                        <Checkbox
+                          checked={dayInfo.isClosed}
+                          onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
+                          className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                        />
+                      </div>
+                    </div>
+                    {!dayInfo.isClosed && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="text-white/50 text-xs mb-1 block">Open</label>
+                          <Input
+                            type="time"
+                            value={dayInfo.openTime}
+                            onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
+                            className="glass border-white/20 text-white h-9 text-sm w-full"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-white/50 text-xs mb-1 block">Close</label>
+                          <Input
+                            type="time"
+                            value={dayInfo.closeTime}
+                            onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
+                            className="glass border-white/20 text-white h-9 text-sm w-full"
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {dayInfo.isClosed && (
+                      <div className="text-red-400/80 text-xs text-center py-2">Closed on this day</div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )
 
-      case 4:
+      case 5:
         return (
           <div className="space-y-5">
             <div>
@@ -815,14 +1166,13 @@ export default function RestaurantForm({
                 <UploadedFiles files={foodMenuPics} restaurantId={createdRestaurantId} onFilesUpdated={setFoodMenuPics} />
               )}
               <div className="glass rounded-xl p-4 border border-white/20 mt-2">
-                <FileDropzone maxFiles={5} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setMenuFiles} />
-                {menuFiles.length > 0 && <p className="text-white/60 text-sm mt-2">{menuFiles.length} file(s) selected</p>}
+                <FileDropzone maxFiles={5} existingCount={foodMenuPics.length} accept={{ "image/*": [], "application/pdf": [] }} files={menuFiles} onFilesSelected={setMenuFiles} />
               </div>
             </div>
           </div>
         )
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-5">
             <div>
@@ -875,7 +1225,7 @@ export default function RestaurantForm({
           </div>
         )
 
-      case 6:
+      case 3:
         return (
           <div className="space-y-5 w-full overflow-hidden">
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
@@ -886,17 +1236,27 @@ export default function RestaurantForm({
                 onChange={e => setFssaiLicenseNumber(e.target.value)}
                 className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3 w-full"
               />
-              {fssaicertificate ? (
-                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
-                  <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                  <span className="text-white/80 text-sm flex-1 truncate min-w-0">Certificate uploaded</span>
-                  <Button size="sm" variant="ghost" className="h-7 text-white/60 flex-shrink-0" onClick={() => window.open(fssaicertificate, "_blank")}>Open</Button>
-                  <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setFssaiCertificate(null)}><X className="w-3 h-3" /></Button>
+              {/* Display existing FSSAI certificates */}
+              {fssaicertificate.length > 0 && (
+                <div className="space-y-2 mb-3">
+                  {fssaicertificate.map((certUrl, idx) => (
+                    <div key={idx} className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
+                      <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                      <span className="text-white/80 text-sm flex-1 truncate min-w-0">Certificate {idx + 1}</span>
+                      <Button size="sm" variant="ghost" className="h-7 text-white/60 flex-shrink-0" onClick={() => window.open(certUrl, "_blank")}>Open</Button>
+                      <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setFssaiCertificate(fssaicertificate.filter((_, i) => i !== idx))}><X className="w-3 h-3" /></Button>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setFssaiCertFiles} />
               )}
-              {fssaiCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{fssaiCertFiles[0].name}</p>}
+              {/* FileDropzone handles disabling when max files reached */}
+              <FileDropzone 
+                maxFiles={5} 
+                existingCount={fssaicertificate.length}
+                accept={{ "image/*": [], "application/pdf": [] }} 
+                files={fssaiCertFiles}
+                onFilesSelected={setFssaiCertFiles} 
+              />
             </div>
 
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
@@ -915,9 +1275,8 @@ export default function RestaurantForm({
                   <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setGstCertificate(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
-                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setGstCertFiles} />
+                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} files={gstCertFiles} onFilesSelected={setGstCertFiles} />
               )}
-              {gstCertFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{gstCertFiles[0].name}</p>}
             </div>
 
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
@@ -936,9 +1295,8 @@ export default function RestaurantForm({
                   <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setPanImage(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
-                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setPanImageFiles} />
+                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} files={panImageFiles} onFilesSelected={setPanImageFiles} />
               )}
-              {panImageFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{panImageFiles[0].name}</p>}
             </div>
 
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
@@ -951,9 +1309,8 @@ export default function RestaurantForm({
                   <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setBbmpTradeLicense(null)}><X className="w-3 h-3" /></Button>
                 </div>
               ) : (
-                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setBbmpLicenseFiles} />
+                <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} files={bbmpLicenseFiles} onFilesSelected={setBbmpLicenseFiles} />
               )}
-              {bbmpLicenseFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{bbmpLicenseFiles[0].name}</p>}
             </div>
 
             {hasAlcohol && (
@@ -968,9 +1325,8 @@ export default function RestaurantForm({
                     <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setLiquorLicense(null)}><X className="w-3 h-3" /></Button>
                   </div>
                 ) : (
-                  <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setLiquorLicenseFiles} />
+                  <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} files={liquorLicenseFiles} onFilesSelected={setLiquorLicenseFiles} />
                 )}
-                {liquorLicenseFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{liquorLicenseFiles[0].name}</p>}
               </div>
             )}
           </div>
@@ -1034,7 +1390,8 @@ export default function RestaurantForm({
           {STEPS.map((step) => {
             const StepIcon = step.icon
             const isActive = currentStep === step.id
-            const isCompleted = currentStep > step.id
+            // Show green tick only if step is before current AND mandatory fields are complete
+            const isCompleted = step.id < currentStep && isStepComplete(step.id)
             const isMandatory = MANDATORY_STEPS.includes(step.id)
 
             return (
@@ -1067,7 +1424,7 @@ export default function RestaurantForm({
       <div className="min-h-[300px] w-full overflow-hidden">{renderStepContent()}</div>
 
       {/* Navigation Buttons */}
-      <div className="flex gap-3 pt-2">
+      <div className="flex flex-wrap gap-3 pt-2">
         {currentStep > 1 && (
           <Button
             type="button"
@@ -1091,6 +1448,18 @@ export default function RestaurantForm({
             Cancel
           </Button>
         )}
+
+        {/* Save Progress Button */}
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleSaveProgress}
+          disabled={savingProgress || loading}
+          className="glass border-white/20 text-white h-12 rounded-xl hover:bg-white/10"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {savingProgress ? "Saving..." : "Save Progress"}
+        </Button>
 
         {currentStep < 7 ? (
           <Button
