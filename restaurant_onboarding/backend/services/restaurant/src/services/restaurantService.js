@@ -121,6 +121,7 @@ export async function createRestaurant(ownerId, body) {
     hasReservation: body.hasReservation,
     reservationLink: body.reservationLink,
     openingHours: body.openingHours,
+    hasAlcohol: body.hasAlcohol,
     instaLink: body.instaLink,
     facebookLink: body.facebookLink,
     twitterLink: body.twitterLink,
@@ -161,6 +162,7 @@ export async function updateRestaurant(restaurantId, body) {
   if (body.hasReservation !== undefined) updatePayload.hasReservation = body.hasReservation
   if (body.reservationLink !== undefined) updatePayload.reservationLink = body.reservationLink
   if (body.openingHours !== undefined) updatePayload.openingHours = body.openingHours
+  if (body.hasAlcohol !== undefined) updatePayload.hasAlcohol = body.hasAlcohol
 
   // Social links
   if (body.instaLink !== undefined) updatePayload.instaLink = body.instaLink

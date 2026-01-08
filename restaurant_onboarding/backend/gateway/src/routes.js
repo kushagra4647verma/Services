@@ -6,6 +6,10 @@ import { authenticate } from "./authMiddleware.js"
 const router = express.Router()
 
 // ---- service proxies (DNS name = docker-compose service key) ----
+// NOTE: For DigitalOcean deployment, use these hostnames:
+//   - onboarding-restaurant-service:5001
+//   - onboarding-beverage-service:5002
+//   - onboarding-event-service:5003
 const restaurantService = proxy("http://onboarding-restaurant-service:5001", {
   proxyReqPathResolver: req => req.originalUrl
 })

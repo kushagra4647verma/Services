@@ -10,12 +10,12 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
-  ArrowLeft, Wine, Edit, Trash2, DollarSign, Droplets, Sparkles,
-  Tag, AlertTriangle, Beaker, FileText, Star, X, Check, ExternalLink, RefreshCw, Image
+  ArrowLeft, Wine, Edit, Trash2, IndianRupee, Droplets, Sparkles,
+  Tag, AlertTriangle, Beaker, FileText, Star, X, Check, ExternalLink, RefreshCw, Image, Utensils
 } from "lucide-react"
 
 const CATEGORIES = ["Cocktail", "Mocktail", "Beer", "Wine", "Whiskey", "Vodka", "Rum", "Gin", "Tequila", "Coffee", "Tea", "Juice", "Smoothie", "Other"]
-const BASE_TYPES = ["Alcoholic", "Non-Alcoholic"]
+const DRINK_TYPES = ["Alcoholic", "Non-Alcoholic"]
 
 export default function BeverageDetail({ restaurantId }) {
   const { beverageId } = useParams()
@@ -30,6 +30,7 @@ export default function BeverageDetail({ restaurantId }) {
   const [ingredientInput, setIngredientInput] = useState("")
   const [allergenInput, setAllergenInput] = useState("")
   const [flavorInput, setFlavorInput] = useState("")
+  const [pairingInput, setPairingInput] = useState("")
 
   useEffect(() => {
     loadBeverage()
@@ -53,10 +54,11 @@ export default function BeverageDetail({ restaurantId }) {
     setEditData({
       name: beverage.name || "",
       category: beverage.category || "",
+      drinkType: beverage.drinkType || "",
       baseType: beverage.baseType || "",
-      type: beverage.type || "",
       ingredients: beverage.ingredients || [],
       allergens: beverage.allergens || [],
+      perfectPairing: beverage.perfectPairing || [],
       price: beverage.price || "",
       sizeVol: beverage.sizeVol || "",
       isSignatureItem: beverage.isSignatureItem || false,
@@ -94,10 +96,11 @@ export default function BeverageDetail({ restaurantId }) {
       const payload = {
         name: editData.name,
         category: editData.category && editData.category.trim() ? editData.category : null,
+        drinkType: editData.drinkType && editData.drinkType.trim() ? editData.drinkType : null,
         baseType: editData.baseType && editData.baseType.trim() ? editData.baseType : null,
-        type: editData.type && editData.type.trim() ? editData.type : null,
         ingredients: editData.ingredients || [],
         allergens: editData.allergens || [],
+        perfectPairing: editData.perfectPairing || [],
         price: editData.price ? parseFloat(editData.price) : null,
         sizeVol: editData.sizeVol && editData.sizeVol.trim() ? editData.sizeVol : null,
         isSignatureItem: editData.isSignatureItem || false,
@@ -249,15 +252,15 @@ export default function BeverageDetail({ restaurantId }) {
                 Signature
               </span>
             )}
-            {beverage.baseType && (
+            {beverage.drinkType && (
               <span className="px-2 py-1 glass rounded-full text-white/80 text-xs">
-                {beverage.baseType}
+                {beverage.drinkType}
               </span>
             )}
           </div>
           <h1 className="text-white text-3xl font-bold">{beverage.name}</h1>
-          {beverage.type && (
-            <span className="text-white/60 text-sm">{beverage.type}</span>
+          {beverage.baseType && (
+            <span className="text-white/60 text-sm">{beverage.baseType}</span>
           )}
         </div>
       </div>
@@ -292,8 +295,8 @@ export default function BeverageDetail({ restaurantId }) {
           </h3>
           <div className="divide-y divide-white/10">
             <DetailRow label="Category" value={beverage.category} icon={Tag} />
-            <DetailRow label="Base Type" value={beverage.baseType} icon={Droplets} />
-            <DetailRow label="Type" value={beverage.type} icon={Beaker} />
+            <DetailRow label="Drink Type" value={beverage.drinkType} icon={Droplets} />
+            <DetailRow label="Type / Style" value={beverage.baseType} icon={Beaker} />
             {beverage.description && (
               <div className="py-2">
                 <span className="text-white/60 text-sm block mb-1">Description</span>
@@ -331,6 +334,17 @@ export default function BeverageDetail({ restaurantId }) {
               Flavor Profile
             </h3>
             <TagList items={beverage.flavorTags} color="purple" />
+          </div>
+        )}
+
+        {/* Perfect Pairing */}
+        {beverage.perfectPairing?.length > 0 && (
+          <div className="glass rounded-xl p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Utensils className="w-4 h-4 text-green-500" />
+              Perfect Pairing
+            </h3>
+            <TagList items={beverage.perfectPairing} color="green" />
           </div>
         )}
 
@@ -376,7 +390,7 @@ export default function BeverageDetail({ restaurantId }) {
                 />
               </div>
 
-              {/* Category & Base Type */}
+              {/* Category & Drink Type */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-sm text-white/80 mb-2 block">Category</label>
@@ -394,13 +408,13 @@ export default function BeverageDetail({ restaurantId }) {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-sm text-white/80 mb-2 block">Base Type</label>
-                  <Select value={editData.baseType} onValueChange={v => updateField("baseType", v)}>
+                  <label className="text-sm text-white/80 mb-2 block">Drink Type</label>
+                  <Select value={editData.drinkType} onValueChange={v => updateField("drinkType", v)}>
                     <SelectTrigger className="glass border-white/20 text-white h-10">
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent className="bg-[#1a1a1a] border-white/20">
-                      {BASE_TYPES.map(type => (
+                      {DRINK_TYPES.map(type => (
                         <SelectItem key={type} value={type} className="text-white hover:bg-white/10">
                           {type}
                         </SelectItem>
@@ -410,12 +424,12 @@ export default function BeverageDetail({ restaurantId }) {
                 </div>
               </div>
 
-              {/* Type */}
+              {/* Type / Style */}
               <div>
-                <label className="text-sm text-white/80 mb-2 block">Type / Style</label>
+                <label className="text-sm text-white/80 mb-2 block">Base Type</label>
                 <Input
-                  value={editData.type}
-                  onChange={e => updateField("type", e.target.value)}
+                  value={editData.baseType}
+                  onChange={e => updateField("baseType", e.target.value)}
                   placeholder="e.g., Margarita"
                   className="glass border-white/20 text-white h-10"
                 />
@@ -542,6 +556,38 @@ export default function BeverageDetail({ restaurantId }) {
                       <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-purple-500/20 text-purple-400 border border-purple-500/30">
                         {item}
                         <button onClick={() => removeFromArray("flavorTags", idx)}><X className="w-3 h-3" /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Perfect Pairing */}
+              <div>
+                <label className="text-sm text-white/80 mb-2 block">Perfect Pairing</label>
+                <div className="flex gap-2 mb-2">
+                  <Input
+                    value={pairingInput}
+                    onChange={e => setPairingInput(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addToArray("perfectPairing", pairingInput, setPairingInput))}
+                    placeholder="Best food to enjoy with this drink"
+                    className="glass border-white/20 text-white h-9 text-sm flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => addToArray("perfectPairing", pairingInput, setPairingInput)}
+                    className="glass border-white/20 text-white h-9"
+                    variant="outline"
+                  >
+                    Add
+                  </Button>
+                </div>
+                {editData.perfectPairing?.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {editData.perfectPairing.map((item, idx) => (
+                      <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-green-500/20 text-green-400 border border-green-500/30">
+                        {item}
+                        <button onClick={() => removeFromArray("perfectPairing", idx)}><X className="w-3 h-3" /></button>
                       </span>
                     ))}
                   </div>

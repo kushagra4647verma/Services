@@ -8,7 +8,8 @@ function sanitizeBeveragePayload(body) {
   const sanitized = { ...body }
   
   // Convert empty strings to null for optional fields
-  const optionalFields = ['category', 'baseType', 'type', 'sizeVol', 'description', 'photo']
+  // Field renames: baseType -> drinkType (Alcoholic/Non-Alcoholic), type -> baseType (style like Margarita)
+  const optionalFields = ['category', 'drinkType', 'baseType', 'sizeVol', 'description', 'photo']
   for (const field of optionalFields) {
     if (sanitized[field] === "" || sanitized[field] === undefined) {
       sanitized[field] = null
@@ -31,6 +32,9 @@ function sanitizeBeveragePayload(body) {
   }
   if (!Array.isArray(sanitized.flavorTags)) {
     sanitized.flavorTags = []
+  }
+  if (!Array.isArray(sanitized.perfectPairing)) {
+    sanitized.perfectPairing = []
   }
   
   return sanitized

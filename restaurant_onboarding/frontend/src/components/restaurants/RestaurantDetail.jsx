@@ -16,13 +16,35 @@ import {
 } from "@/components/ui/dialog"
 import {
   Store, FileText, Plus, Upload, X, Edit2, MapPin, Phone,
-  Link2, Clock, DollarSign, Image, ExternalLink
+  Link2, Clock, IndianRupee, Image, ExternalLink, Wine
 } from "lucide-react"
 
 // Convert database integer to display string
 function formatPriceRange(value) {
-  const map = { 1: "$", 2: "$$", 3: "$$$", 4: "$$$$" }
+  const map = { 1: "₹", 2: "₹₹", 3: "₹₹₹", 4: "₹₹₹₹" }
   return map[value] || value
+}
+
+// Parse and format opening hours JSON
+function parseOpeningHours(hoursData) {
+  if (!hoursData) return null
+  try {
+    const hours = typeof hoursData === 'string' ? JSON.parse(hoursData) : hoursData
+    if (Array.isArray(hours)) return hours
+    return null
+  } catch {
+    return null
+  }
+}
+
+// Format time from 24h to 12h format
+function formatTime(time) {
+  if (!time) return ''
+  const [hours, minutes] = time.split(':')
+  const h = parseInt(hours)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h % 12 || 12
+  return `${h12}:${minutes} ${ampm}`
 }
 
 export default function RestaurantDetail({
@@ -37,12 +59,28 @@ export default function RestaurantDetail({
   const [bankDetails, setBankDetails] = useState(null)
   const [loadingExtra, setLoadingExtra] = useState(false)
 
+  // Load legal info on mount if restaurant serves alcohol (to show liquor license)
+  useEffect(() => {
+    if (restaurant?.id && restaurant?.hasAlcohol) {
+      loadLegalInfo()
+    }
+  }, [restaurant?.id, restaurant?.hasAlcohol])
+
   // Load legal and bank info when opening edit modal
   useEffect(() => {
     if (showEditModal && restaurant?.id) {
       loadExtraInfo()
     }
   }, [showEditModal, restaurant?.id])
+
+  async function loadLegalInfo() {
+    try {
+      const legal = await getLegalInfo(restaurant.id).catch(() => null)
+      setLegalInfo(legal)
+    } catch (err) {
+      console.error("Failed to load legal info:", err)
+    }
+  }
 
   async function loadExtraInfo() {
     setLoadingExtra(true)
@@ -161,12 +199,17 @@ export default function RestaurantDetail({
                 )}
                 {restaurant.priceRange && (
                   <span className="text-amber-400 text-sm flex items-center gap-1">
-                    <DollarSign className="w-3 h-3" /> {formatPriceRange(restaurant.priceRange)}
+                    <IndianRupee className="w-3 h-3" /> {formatPriceRange(restaurant.priceRange)}
                   </span>
                 )}
                 {restaurant.hasReservation && (
                   <Badge variant="outline" className="text-green-400 border-green-400/30 text-xs">
                     Reservations
+                  </Badge>
+                )}
+                {restaurant.hasAlcohol && (
+                  <Badge variant="outline" className="text-amber-400 border-amber-400/30 text-xs flex items-center gap-1">
+                    <Wine className="w-3 h-3" /> Serves Alcohol
                   </Badge>
                 )}
               </div>
@@ -230,10 +273,33 @@ export default function RestaurantDetail({
           {/* Opening Hours */}
           {restaurant.openingHours && (
             <div className="mt-4 pt-4 border-t border-white/10">
-              <div className="flex items-start gap-2">
-                <Clock className="w-4 h-4 text-amber-500 mt-0.5" />
-                <p className="text-white/60 text-sm whitespace-pre-line">{restaurant.openingHours}</p>
+              <div className="flex items-center gap-2 mb-3">
+                <Clock className="w-4 h-4 text-amber-500" />
+                <span className="text-white/80 text-sm font-medium">Opening Hours</span>
               </div>
+              {(() => {
+                const hours = parseOpeningHours(restaurant.openingHours)
+                if (hours && Array.isArray(hours)) {
+                  return (
+                    <div className="grid grid-cols-1 gap-1">
+                      {hours.map((dayInfo) => (
+                        <div key={dayInfo.day} className="flex items-center justify-between text-sm py-1">
+                          <span className="text-white/70 w-24">{dayInfo.day.slice(0, 3)}</span>
+                          {dayInfo.isClosed ? (
+                            <span className="text-red-400">Closed</span>
+                          ) : (
+                            <span className="text-white/60">
+                              {formatTime(dayInfo.openTime)} - {formatTime(dayInfo.closeTime)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )
+                } else {
+                  return <p className="text-white/60 text-sm whitespace-pre-line">{restaurant.openingHours}</p>
+                }
+              })()}
             </div>
           )}
 
@@ -243,6 +309,24 @@ export default function RestaurantDetail({
               <div className="flex items-start gap-2">
                 <MapPin className="w-4 h-4 text-amber-500 mt-0.5" />
                 <p className="text-white/60 text-sm">{restaurant.address}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Liquor License (shown when hasAlcohol is true) */}
+          {restaurant.hasAlcohol && legalInfo?.liquorlicense && (
+            <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="flex items-center gap-2">
+                <Wine className="w-4 h-4 text-amber-500" />
+                <span className="text-white/80 text-sm font-medium">Liquor License</span>
+                <a
+                  href={legalInfo.liquorlicense}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-amber-400 hover:text-amber-300 text-sm flex items-center gap-1"
+                >
+                  View <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             </div>
           )}

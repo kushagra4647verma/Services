@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { GlassWater, Plus, Store, LogOut, MapPin } from "lucide-react"
+import { Toaster } from "@/components/ui/sonner"
 
 export default function App() {
   const [session, setSession] = useState(false)
@@ -156,7 +157,12 @@ export default function App() {
   }
 
   if (!session) {
-    return <Login onLogin={handleLogin} />
+    return (
+      <>
+        <Login onLogin={handleLogin} />
+        <Toaster position="top-center" richColors />
+      </>
+    )
   }
 
   if (loading) {
@@ -312,6 +318,7 @@ export default function App() {
           </div>
         </DialogContent>
       </Dialog>
+      <Toaster position="top-center" richColors />
     </div>
   )
 }

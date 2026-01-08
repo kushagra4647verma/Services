@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Wine, X, DollarSign, Droplets, Sparkles, Tag, AlertTriangle, Beaker, FileText, Star, Image, Trash2, RefreshCw, ExternalLink } from "lucide-react"
+import { Wine, X, IndianRupee, Droplets, Sparkles, Tag, AlertTriangle, Beaker, FileText, Star, Image, Trash2, RefreshCw, ExternalLink, Utensils } from "lucide-react"
 
 const CATEGORIES = ["Cocktail", "Mocktail", "Beer", "Wine", "Whiskey", "Vodka", "Rum", "Gin", "Tequila", "Coffee", "Tea", "Juice", "Smoothie", "Other"]
-const BASE_TYPES = ["Alcoholic", "Non-Alcoholic"]
+const DRINK_TYPES = ["Alcoholic", "Non-Alcoholic"]
 
 // TagInput component defined outside to prevent re-creation on every render
 const TagInput = ({ label, icon: Icon, value, items, onInputChange, onAdd, onRemove, placeholder, color = "amber" }) => (
@@ -69,10 +69,11 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
   const [formData, setFormData] = useState({
     name: initialData?.name || "",
     category: initialData?.category || "",
+    drinkType: initialData?.drinkType || "",
     baseType: initialData?.baseType || "",
-    type: initialData?.type || "",
     ingredients: initialData?.ingredients || [],
     allergens: initialData?.allergens || [],
+    perfectPairing: initialData?.perfectPairing || [],
     price: initialData?.price || "",
     sizeVol: initialData?.sizeVol || "",
     isSignatureItem: initialData?.isSignatureItem || false,
@@ -83,6 +84,7 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
   const [ingredientInput, setIngredientInput] = useState("")
   const [allergenInput, setAllergenInput] = useState("")
   const [flavorInput, setFlavorInput] = useState("")
+  const [pairingInput, setPairingInput] = useState("")
   const [selectedFile, setSelectedFile] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -107,8 +109,26 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
     }))
   }
 
+  function validateForm() {
+    // All mandatory except allergens and description
+    if (!formData.name.trim()) return "Beverage name is required"
+    if (!formData.category) return "Category is required"
+    if (!formData.drinkType) return "Drink type is required"
+    if (!formData.baseType.trim()) return "Type/Style is required"
+    if (formData.ingredients.length === 0) return "At least one ingredient is required"
+    if (!formData.price) return "Price is required"
+    if (!formData.sizeVol.trim()) return "Size/Volume is required"
+    if (formData.flavorTags.length === 0) return "At least one flavor tag is required"
+    if (!formData.photo && !selectedFile) return "Cover image is required"
+    return null
+  }
+
   async function submit() {
-    if (!formData.name.trim()) return
+    const validationError = validateForm()
+    if (validationError) {
+      alert(validationError)
+      return
+    }
     
     setLoading(true)
     try {
@@ -122,10 +142,11 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
       const payload = {
         name: formData.name,
         category: formData.category && formData.category.trim() ? formData.category : null,
+        drinkType: formData.drinkType && formData.drinkType.trim() ? formData.drinkType : null,
         baseType: formData.baseType && formData.baseType.trim() ? formData.baseType : null,
-        type: formData.type && formData.type.trim() ? formData.type : null,
         ingredients: formData.ingredients || [],
         allergens: formData.allergens || [],
+        perfectPairing: formData.perfectPairing || [],
         price: formData.price ? parseFloat(formData.price) : null,
         sizeVol: formData.sizeVol && formData.sizeVol.trim() ? formData.sizeVol : null,
         isSignatureItem: formData.isSignatureItem || false,
@@ -143,11 +164,12 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
       onCreate(beverage)
       // Reset form
       setFormData({
-        name: "", category: "", baseType: "", type: "",
-        ingredients: [], allergens: [], price: "", sizeVol: "",
+        name: "", category: "", drinkType: "", baseType: "",
+        ingredients: [], allergens: [], perfectPairing: [], price: "", sizeVol: "",
         isSignatureItem: false, flavorTags: [], description: "", photo: ""
       })
       setSelectedFile(null)
+      setPairingInput("")
     } catch (err) {
       console.error(err)
       alert(isEditing ? "Failed to update beverage" : "Failed to add beverage")
@@ -200,12 +222,12 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         />
       </div>
 
-      {/* Category & Base Type */}
+      {/* Category & Drink Type */}
       <div className="grid grid-cols-2 gap-3 w-full">
         <div>
           <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
             <Tag className="w-4 h-4 text-amber-500" />
-            Category
+            Category <span className="text-red-400">*</span>
           </label>
           <Select value={formData.category} onValueChange={v => updateField("category", v)}>
             <SelectTrigger className="glass border-white/20 text-white h-10">
@@ -224,14 +246,14 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         <div>
           <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
             <Droplets className="w-4 h-4 text-amber-500" />
-            Base Type
+            Drink Type <span className="text-red-400">*</span>
           </label>
-          <Select value={formData.baseType} onValueChange={v => updateField("baseType", v)}>
+          <Select value={formData.drinkType} onValueChange={v => updateField("drinkType", v)}>
             <SelectTrigger className="glass border-white/20 text-white h-10">
-              <SelectValue placeholder="Select type" />
+              <SelectValue placeholder="Select drink type" />
             </SelectTrigger>
             <SelectContent className="bg-[#1a1a1a] border-white/20">
-              {BASE_TYPES.map(type => (
+              {DRINK_TYPES.map(type => (
                 <SelectItem key={type} value={type} className="text-white hover:bg-white/10">
                   {type}
                 </SelectItem>
@@ -241,16 +263,16 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         </div>
       </div>
 
-      {/* Type (free text) */}
+      {/* Type / Style (now baseType) */}
       <div>
         <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
           <Beaker className="w-4 h-4 text-amber-500" />
-          Type / Style
+          Base Type <span className="text-red-400">*</span>
         </label>
         <Input
           placeholder="e.g., Margarita, Espresso Martini..."
-          value={formData.type}
-          onChange={e => updateField("type", e.target.value)}
+          value={formData.baseType}
+          onChange={e => updateField("baseType", e.target.value)}
           className="glass border-white/20 text-white placeholder:text-white/40 h-10"
         />
       </div>
@@ -259,8 +281,8 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
-            <DollarSign className="w-4 h-4 text-amber-500" />
-            Price (₹)
+            <IndianRupee className="w-4 h-4 text-amber-500" />
+            Price (₹) <span className="text-red-400">*</span>
           </label>
           <Input
             type="number"
@@ -274,7 +296,7 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         <div>
           <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
             <Droplets className="w-4 h-4 text-amber-500" />
-            Size / Volume
+            Size / Volume <span className="text-red-400">*</span>
           </label>
           <Input
             placeholder="e.g., 330ml, Large"
@@ -302,7 +324,7 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
 
       {/* Ingredients */}
       <TagInput
-        label="Ingredients"
+        label="Ingredients *"
         icon={Beaker}
         value={ingredientInput}
         items={formData.ingredients}
@@ -328,7 +350,7 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
 
       {/* Flavor Tags */}
       <TagInput
-        label="Flavor Tags"
+        label="Flavor Tags *"
         icon={Sparkles}
         value={flavorInput}
         items={formData.flavorTags}
@@ -339,11 +361,24 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
         color="purple"
       />
 
+      {/* Perfect Pairing */}
+      <TagInput
+        label="Perfect Pairing"
+        icon={Utensils}
+        value={pairingInput}
+        items={formData.perfectPairing}
+        onInputChange={setPairingInput}
+        onAdd={() => addToArray("perfectPairing", pairingInput, setPairingInput)}
+        onRemove={(idx) => removeFromArray("perfectPairing", idx)}
+        placeholder="Best food to enjoy with this drink..."
+        color="green"
+      />
+
       {/* Cover Image */}
       <div>
         <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
           <Image className="w-4 h-4 text-amber-500" />
-          Cover Image
+          Cover Image <span className="text-red-400">*</span>
         </label>
         {formData.photo ? (
           <div className="glass rounded-xl overflow-hidden">

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { uploadRestaurantFiles } from "../../utils/uploadRestaurantFiles"
 import { getCurrentLocation } from "../../utils/getCurrentLocation"
-import { updateRestaurant, updateLegalInfo, updateBankDetails } from "../../api/restaurants"
+import { createRestaurant, updateRestaurant, updateLegalInfo, updateBankDetails } from "../../api/restaurants"
 import { supabase } from "../../supabaseClient"
 import FileDropzone from "../common/FileDropzone"
 import MapPicker from "../common/MapPicker"
@@ -11,48 +11,55 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { CUISINE_OPTIONS, AMENITY_OPTIONS, getDefaultOpeningHours } from "../../config/restaurantOptions"
 import {
   Store, FileText, MapPin, Upload, X, ChevronRight, ChevronLeft,
-  Image, Link2, Phone, Building2, Shield, Landmark, Check, Plus
+  Image, Link2, Phone, Building2, Shield, Landmark, Check, Plus, Clock, UtensilsCrossed
 } from "lucide-react"
 
 const STEPS = [
   { id: 1, title: "Basic Info", icon: Store },
   { id: 2, title: "Branding", icon: Image },
   { id: 3, title: "Details", icon: FileText },
-  { id: 4, title: "Social", icon: Link2 },
-  { id: 5, title: "Legal", icon: Shield },
-  { id: 6, title: "Bank", icon: Landmark },
+  { id: 4, title: "Menu", icon: UtensilsCrossed },
+  { id: 5, title: "Social", icon: Link2 },
+  { id: 6, title: "Legal", icon: Shield },
+  { id: 7, title: "Bank", icon: Landmark },
 ]
 
-const CUISINE_OPTIONS = [
-  "Italian", "Indian", "Chinese", "Japanese", "Mexican", "Thai",
-  "French", "Mediterranean", "American", "Korean", "Vietnamese",
-  "Greek", "Spanish", "Middle Eastern", "Caribbean", "African"
-]
-
-const AMENITY_OPTIONS = [
-  "WiFi", "Parking", "Outdoor Seating", "Live Music", "Pet Friendly",
-  "Wheelchair Accessible", "Private Dining", "Bar", "Rooftop",
-  "Air Conditioning", "Valet Parking", "Kids Play Area"
-]
+// Mandatory steps that must be completed before submission
+const MANDATORY_STEPS = [1, 2, 3, 4, 6] // Basic Info, Branding, Details, Menu, Legal
 
 // Price range: display string <-> database integer
 const PRICE_RANGE_OPTIONS = [
-  { display: "$", value: 1 },
-  { display: "$$", value: 2 },
-  { display: "$$$", value: 3 },
-  { display: "$$$$", value: 4 }
+  { display: "₹", value: 1 },
+  { display: "₹₹", value: 2 },
+  { display: "₹₹₹", value: 3 },
+  { display: "₹₹₹₹", value: 4 }
 ]
 
 function priceRangeToDisplay(dbValue) {
   const found = PRICE_RANGE_OPTIONS.find(p => p.value === dbValue)
-  return found ? found.display : "$$"
+  return found ? found.display : "₹₹"
 }
 
 function priceRangeToDb(displayValue) {
   const found = PRICE_RANGE_OPTIONS.find(p => p.display === displayValue)
   return found ? found.value : 2
+}
+
+// Parse opening hours from JSON or return default
+function parseOpeningHours(hoursData) {
+  if (!hoursData) return getDefaultOpeningHours()
+  if (typeof hoursData === 'string') {
+    try {
+      return JSON.parse(hoursData)
+    } catch {
+      return getDefaultOpeningHours()
+    }
+  }
+  return hoursData
 }
 
 export default function RestaurantForm({
@@ -80,6 +87,22 @@ export default function RestaurantForm({
   const [phone, setPhone] = useState(editRestaurant?.phone || "")
   const [address, setAddress] = useState(editRestaurant?.address || "")
   const [location, setLocation] = useState(editRestaurant?.location || null)
+  const [locationError, setLocationError] = useState(false)
+
+  // Get current location on mount if not in edit mode
+  useEffect(() => {
+    if (!isEditMode && !location) {
+      getCurrentLocation()
+        .then(loc => {
+          setLocation(loc)
+          setLocationError(false)
+        })
+        .catch((err) => {
+          setLocationError(true)
+          alert("Location access is required. Please enable location services in your browser settings and refresh the page.")
+        })
+    }
+  }, [])
 
   // Step 2: Branding
   const [logoFiles, setLogoFiles] = useState([])
@@ -93,11 +116,12 @@ export default function RestaurantForm({
   const [cuisineTags, setCuisineTags] = useState(editRestaurant?.cuisineTags || [])
   const [amenities, setAmenities] = useState(editRestaurant?.amenities || [])
   const [priceRange, setPriceRange] = useState(
-    editRestaurant?.priceRange ? priceRangeToDisplay(editRestaurant.priceRange) : "$$"
+    editRestaurant?.priceRange ? priceRangeToDisplay(editRestaurant.priceRange) : "₹₹"
   )
   const [hasReservation, setHasReservation] = useState(editRestaurant?.hasReservation || false)
   const [reservationLink, setReservationLink] = useState(editRestaurant?.reservationLink || "")
-  const [openingHours, setOpeningHours] = useState(editRestaurant?.openingHours || "")
+  const [openingHours, setOpeningHours] = useState(parseOpeningHours(editRestaurant?.openingHours))
+  const [hasAlcohol, setHasAlcohol] = useState(editRestaurant?.hasAlcohol || false)
 
   // Step 4: Social Links
   const [instaLink, setInstaLink] = useState(editRestaurant?.instaLink || "")
@@ -117,6 +141,8 @@ export default function RestaurantForm({
   const [panimage, setPanImage] = useState(editLegalInfo?.panimage || null)
   const [bbmpLicenseFiles, setBbmpLicenseFiles] = useState([])
   const [bbmptradelicense, setBbmpTradeLicense] = useState(editLegalInfo?.bbmptradelicense || null)
+  const [liquorLicenseFiles, setLiquorLicenseFiles] = useState([])
+  const [liquorlicense, setLiquorLicense] = useState(editLegalInfo?.liquorlicense || null)
 
   // Step 6: Bank Details
   const [accountnumber, setAccountNumber] = useState(editBankDetails?.accountnumber || "")
@@ -144,281 +170,297 @@ export default function RestaurantForm({
     return data.publicUrl
   }
 
-  // Step 1: Create or update basic restaurant
-  async function handleBasicInfoSave() {
+  // Validation functions for each step
+  function validateBasicInfo() {
     if (!name.trim()) {
       alert("Restaurant name is required")
       return false
     }
-
-    setLoading(true)
-    try {
-      // Only include location if it has valid coordinates
-      let finalLocation = null
-      if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
-        finalLocation = location
-      } else {
-        // Try to get current location
-        try {
-          finalLocation = await getCurrentLocation()
-        } catch (e) {
-          // Location not available, that's ok
-        }
-      }
-
-      const payload = {
-        name,
-        bio,
-        phone,
-        address
-      }
-      
-      // Only include location if valid
-      if (finalLocation && finalLocation.lat && finalLocation.lng) {
-        payload.location = finalLocation
-      }
-
-      if (isEditMode || createdRestaurantId) {
-        const updated = await updateRestaurant(createdRestaurantId, payload)
-        onRestaurantUpdated?.(updated)
-      } else {
-        const restaurant = await onCreate(payload)
-        setCreatedRestaurantId(restaurant.id)
-        onRestaurantUpdated?.(restaurant)
-      }
-      return true
-    } catch (err) {
-      console.error(err)
-      alert("Failed to save basic info")
+    if (!bio.trim()) {
+      alert("Description is required")
       return false
-    } finally {
-      setLoading(false)
+    }
+    if (!phone.trim()) {
+      alert("Phone number is required")
+      return false
+    }
+    if (!address.trim()) {
+      alert("Address is required")
+      return false
+    }
+    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+      alert("Location is required. Please select a location on the map.")
+      return false
+    }
+    return true
+  }
+
+  function validateBranding() {
+    if (!logoImage && logoFiles.length === 0) {
+      alert("Logo image is required")
+      return false
+    }
+    if (!coverImage && coverFiles.length === 0) {
+      alert("Cover image is required")
+      return false
+    }
+    if (gallery.length === 0 && galleryFiles.length === 0) {
+      alert("At least one gallery image is required")
+      return false
+    }
+    return true
+  }
+
+  function validateDetails() {
+    if (cuisineTags.length === 0) {
+      alert("Please select at least one cuisine type")
+      return false
+    }
+    if (amenities.length === 0) {
+      alert("Please select at least one amenity")
+      return false
+    }
+    if (!priceRange) {
+      alert("Please select a price range")
+      return false
+    }
+    // Check if at least one day has opening hours
+    const hasOpenDay = openingHours.some(day => !day.isClosed)
+    if (!hasOpenDay) {
+      alert("At least one day must have opening hours")
+      return false
+    }
+    return true
+  }
+
+  function validateMenu() {
+    if (foodMenuPics.length === 0 && menuFiles.length === 0) {
+      alert("Food menu is required")
+      return false
+    }
+    return true
+  }
+
+  function validateLegal() {
+    if (!fssailicensenumber.trim()) {
+      alert("FSSAI License Number is required")
+      return false
+    }
+    if (!fssaicertificate && fssaiCertFiles.length === 0) {
+      alert("FSSAI Certificate is required")
+      return false
+    }
+    if (!gstnumber.trim()) {
+      alert("GST Number is required")
+      return false
+    }
+    if (!gstcertificate && gstCertFiles.length === 0) {
+      alert("GST Certificate is required")
+      return false
+    }
+    if (!pannumber.trim()) {
+      alert("PAN Number is required")
+      return false
+    }
+    if (!panimage && panImageFiles.length === 0) {
+      alert("PAN Card image is required")
+      return false
+    }
+    if (!bbmptradelicense && bbmpLicenseFiles.length === 0) {
+      alert("BBMP Trade License is required")
+      return false
+    }
+    // Liquor license is required only if restaurant serves alcohol
+    if (hasAlcohol && !liquorlicense && liquorLicenseFiles.length === 0) {
+      alert("Liquor License is required when serving alcohol")
+      return false
+    }
+    return true
+  }
+
+  // Validate current step before proceeding
+  function validateStep(step) {
+    switch (step) {
+      case 1: return validateBasicInfo()
+      case 2: return validateBranding()
+      case 3: return validateDetails()
+      case 4: return validateMenu()
+      case 6: return validateLegal()
+      default: return true
     }
   }
 
-  // Step 2: Upload branding images
-  async function handleBrandingSave() {
-    if (!createdRestaurantId) {
-      alert("Please complete step 1 first")
-      return false
+  // Final submission - creates/updates restaurant with all data
+  async function handleFinalSubmit() {
+    // Validate all mandatory steps
+    for (const step of MANDATORY_STEPS) {
+      if (!validateStep(step)) {
+        setCurrentStep(step)
+        return
+      }
     }
 
     setLoading(true)
     try {
+      // Get location if needed
+      let finalLocation = location
+      if (!finalLocation || typeof finalLocation.lat !== 'number') {
+        try {
+          finalLocation = await getCurrentLocation()
+        } catch (e) {
+          // Location not available
+        }
+      }
+
+      let restaurantId = createdRestaurantId
+
+      // Step 1: Create or update basic info
+      const basicPayload = {
+        name,
+        bio,
+        phone,
+        address,
+        ...(finalLocation?.lat && finalLocation?.lng ? { location: finalLocation } : {})
+      }
+
+      if (isEditMode || restaurantId) {
+        await updateRestaurant(restaurantId, basicPayload)
+      } else {
+        const restaurant = await createRestaurant(basicPayload)
+        restaurantId = restaurant.id
+        setCreatedRestaurantId(restaurantId)
+      }
+
+      // Step 2: Upload branding images
       let newLogoUrl = logoImage
       let newCoverUrl = coverImage
       let newGalleryUrls = [...gallery]
 
       if (logoFiles.length > 0) {
-        newLogoUrl = await uploadSingleFile(createdRestaurantId, logoFiles[0], "logo")
+        newLogoUrl = await uploadSingleFile(restaurantId, logoFiles[0], "logo")
         setLogoImage(newLogoUrl)
       }
-
       if (coverFiles.length > 0) {
-        newCoverUrl = await uploadSingleFile(createdRestaurantId, coverFiles[0], "cover")
+        newCoverUrl = await uploadSingleFile(restaurantId, coverFiles[0], "cover")
         setCoverImage(newCoverUrl)
       }
-
       if (galleryFiles.length > 0) {
-        const uploadedGallery = await uploadRestaurantFiles(createdRestaurantId, galleryFiles, "gallery")
+        const uploadedGallery = await uploadRestaurantFiles(restaurantId, galleryFiles, "gallery")
         newGalleryUrls = [...newGalleryUrls, ...uploadedGallery]
         setGallery(newGalleryUrls)
       }
 
-      const updated = await updateRestaurant(createdRestaurantId, {
-        logoImage: newLogoUrl,
-        coverImage: newCoverUrl,
-        gallery: newGalleryUrls
-      })
-      onRestaurantUpdated?.(updated)
-
-      setLogoFiles([])
-      setCoverFiles([])
-      setGalleryFiles([])
-
-      return true
-    } catch (err) {
-      console.error(err)
-      alert("Failed to save branding")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Step 3: Save details
-  async function handleDetailsSave() {
-    if (!createdRestaurantId) {
-      alert("Please complete step 1 first")
-      return false
-    }
-
-    setLoading(true)
-    try {
+      // Step 3: Details & menu
       let newMenuPics = [...foodMenuPics]
       if (menuFiles.length > 0) {
-        const uploadedMenus = await uploadRestaurantFiles(createdRestaurantId, menuFiles, "menus")
+        const uploadedMenus = await uploadRestaurantFiles(restaurantId, menuFiles, "menus")
         newMenuPics = [...newMenuPics, ...uploadedMenus]
         setFoodMenuPics(newMenuPics)
       }
 
-      const updated = await updateRestaurant(createdRestaurantId, {
+      // Update restaurant with all details
+      const updated = await updateRestaurant(restaurantId, {
+        logoImage: newLogoUrl,
+        coverImage: newCoverUrl,
+        gallery: newGalleryUrls,
         cuisineTags,
         amenities,
         priceRange: priceRangeToDb(priceRange),
         hasReservation,
         reservationLink: hasReservation ? reservationLink : null,
-        openingHours,
-        foodMenuPics: newMenuPics
-      })
-      onRestaurantUpdated?.(updated)
-      setMenuFiles([])
-      return true
-    } catch (err) {
-      console.error(err)
-      alert("Failed to save details")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Step 4: Save social links
-  async function handleSocialSave() {
-    if (!createdRestaurantId) {
-      alert("Please complete step 1 first")
-      return false
-    }
-
-    setLoading(true)
-    try {
-      const updated = await updateRestaurant(createdRestaurantId, {
+        openingHours: JSON.stringify(openingHours),
+        foodMenuPics: newMenuPics,
+        hasAlcohol,
         instaLink,
         facebookLink,
         twitterLink,
         googleMapsLink
       })
       onRestaurantUpdated?.(updated)
-      return true
-    } catch (err) {
-      console.error(err)
-      alert("Failed to save social links")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  // Step 5: Save legal info
-  async function handleLegalSave() {
-    if (!createdRestaurantId) {
-      alert("Please complete step 1 first")
-      return false
-    }
-
-    setLoading(true)
-    try {
+      // Step 5: Legal info
       let newFssaiCert = fssaicertificate
       let newGstCert = gstcertificate
       let newPanImg = panimage
       let newBbmpLic = bbmptradelicense
+      let newLiquorLic = liquorlicense
 
       if (fssaiCertFiles.length > 0) {
-        newFssaiCert = await uploadSingleFile(createdRestaurantId, fssaiCertFiles[0], "legal/fssai")
+        newFssaiCert = await uploadSingleFile(restaurantId, fssaiCertFiles[0], "legal/fssai")
         setFssaiCertificate(newFssaiCert)
       }
       if (gstCertFiles.length > 0) {
-        newGstCert = await uploadSingleFile(createdRestaurantId, gstCertFiles[0], "legal/gst")
+        newGstCert = await uploadSingleFile(restaurantId, gstCertFiles[0], "legal/gst")
         setGstCertificate(newGstCert)
       }
       if (panImageFiles.length > 0) {
-        newPanImg = await uploadSingleFile(createdRestaurantId, panImageFiles[0], "legal/pan")
+        newPanImg = await uploadSingleFile(restaurantId, panImageFiles[0], "legal/pan")
         setPanImage(newPanImg)
       }
       if (bbmpLicenseFiles.length > 0) {
-        newBbmpLic = await uploadSingleFile(createdRestaurantId, bbmpLicenseFiles[0], "legal/bbmp")
+        newBbmpLic = await uploadSingleFile(restaurantId, bbmpLicenseFiles[0], "legal/bbmp")
         setBbmpTradeLicense(newBbmpLic)
       }
+      if (hasAlcohol && liquorLicenseFiles.length > 0) {
+        newLiquorLic = await uploadSingleFile(restaurantId, liquorLicenseFiles[0], "legal/liquor")
+        setLiquorLicense(newLiquorLic)
+      }
 
-      await updateLegalInfo(createdRestaurantId, {
+      await updateLegalInfo(restaurantId, {
         fssailicensenumber,
         fssaicertificate: newFssaiCert,
         gstnumber,
         gstcertificate: newGstCert,
         pannumber,
         panimage: newPanImg,
-        bbmptradelicense: newBbmpLic
+        bbmptradelicense: newBbmpLic,
+        liquorlicense: hasAlcohol ? newLiquorLic : null
       })
 
+      // Step 6: Bank details
+      if (accountnumber || ifsccode) {
+        await updateBankDetails(restaurantId, {
+          accountnumber,
+          ifsccode
+        })
+      }
+
+      // Clear all file states
+      setLogoFiles([])
+      setCoverFiles([])
+      setGalleryFiles([])
+      setMenuFiles([])
       setFssaiCertFiles([])
       setGstCertFiles([])
       setPanImageFiles([])
       setBbmpLicenseFiles([])
 
-      return true
-    } catch (err) {
-      console.error(err)
-      alert("Failed to save legal info")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Step 6: Save bank details
-  async function handleBankSave() {
-    if (!createdRestaurantId) {
-      alert("Please complete step 1 first")
-      return false
-    }
-
-    setLoading(true)
-    try {
-      await updateBankDetails(createdRestaurantId, {
-        accountnumber,
-        ifsccode
-      })
-      return true
-    } catch (err) {
-      console.error(err)
-      alert("Failed to save bank details")
-      return false
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Save current step and move to next
-  async function handleSaveAndContinue() {
-    let success = false
-
-    switch (currentStep) {
-      case 1:
-        success = await handleBasicInfoSave()
-        break
-      case 2:
-        success = await handleBrandingSave()
-        break
-      case 3:
-        success = await handleDetailsSave()
-        break
-      case 4:
-        success = await handleSocialSave()
-        break
-      case 5:
-        success = await handleLegalSave()
-        break
-      case 6:
-        success = await handleBankSave()
-        break
-    }
-
-    if (success && currentStep < 6) {
-      setCurrentStep(currentStep + 1)
-    } else if (success && currentStep === 6) {
-      // Close the form automatically on completion
       onComplete?.()
+    } catch (err) {
+      console.error(err)
+      alert("Failed to create restaurant. Please try again.")
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Handle next step navigation
+  function handleNextStep() {
+    // Validate current step if it's mandatory
+    if (MANDATORY_STEPS.includes(currentStep) && !validateStep(currentStep)) {
+      return
+    }
+    
+    if (currentStep < 6) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  // Update opening hours for a specific day
+  function updateOpeningHoursDay(dayIndex, field, value) {
+    const newHours = [...openingHours]
+    newHours[dayIndex] = { ...newHours[dayIndex], [field]: value }
+    setOpeningHours(newHours)
   }
 
   // Tag toggle helpers
@@ -465,7 +507,7 @@ export default function RestaurantForm({
             <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Store className="w-4 h-4 text-amber-500" />
-                Restaurant Name *
+                Restaurant Name <span className="text-red-400">*</span>
               </label>
               <Input
                 placeholder="Enter restaurant name"
@@ -478,7 +520,7 @@ export default function RestaurantForm({
             <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <FileText className="w-4 h-4 text-amber-500" />
-                Description
+                Description <span className="text-red-400">*</span>
               </label>
               <Textarea
                 placeholder="Tell us about your restaurant..."
@@ -491,7 +533,7 @@ export default function RestaurantForm({
             <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Phone className="w-4 h-4 text-amber-500" />
-                Phone Number
+                Phone Number <span className="text-red-400">*</span>
               </label>
               <Input
                 placeholder="+91 98765 43210"
@@ -504,7 +546,7 @@ export default function RestaurantForm({
             <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-amber-500" />
-                Address
+                Address <span className="text-red-400">*</span>
               </label>
               <Textarea
                 placeholder="Full address..."
@@ -517,7 +559,7 @@ export default function RestaurantForm({
             <div className="w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-amber-500" />
-                Location
+                Location <span className="text-red-400">*</span>
               </label>
               <div className="glass rounded-xl p-3 border border-white/20 w-full overflow-hidden">
                 <MapPicker value={location} onChange={setLocation} />
@@ -532,7 +574,7 @@ export default function RestaurantForm({
             <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Image className="w-4 h-4 text-amber-500" />
-                Logo Image
+                Logo Image <span className="text-red-400">*</span>
               </label>
               {logoImage ? (
                 <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-white/20">
@@ -567,7 +609,7 @@ export default function RestaurantForm({
             <div className="w-full">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Image className="w-4 h-4 text-amber-500" />
-                Cover Image
+                Cover Image <span className="text-red-400">*</span>
               </label>
               {coverImage ? (
                 <div className="relative h-32 rounded-xl overflow-hidden border border-white/20">
@@ -592,7 +634,7 @@ export default function RestaurantForm({
             <div className="w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Image className="w-4 h-4 text-amber-500" />
-                Gallery Images
+                Gallery Images <span className="text-red-400">*</span>
               </label>
               {gallery.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mb-3">
@@ -623,7 +665,7 @@ export default function RestaurantForm({
         return (
           <div className="space-y-5">
             <div>
-              <label className="text-sm text-white/80 mb-2 block">Cuisine Types</label>
+              <label className="text-sm text-white/80 mb-2 block">Cuisine Types <span className="text-red-400">*</span></label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {CUISINE_OPTIONS.map(cuisine => (
                   <Badge
@@ -643,7 +685,7 @@ export default function RestaurantForm({
             </div>
 
             <div>
-              <label className="text-sm text-white/80 mb-2 block">Amenities</label>
+              <label className="text-sm text-white/80 mb-2 block">Amenities <span className="text-red-400">*</span></label>
               <div className="flex flex-wrap gap-2 mb-2">
                 {AMENITY_OPTIONS.map(amenity => (
                   <Badge
@@ -663,9 +705,9 @@ export default function RestaurantForm({
             </div>
 
             <div>
-              <label className="text-sm text-white/80 mb-2 block">Price Range</label>
+              <label className="text-sm text-white/80 mb-2 block">Price Range <span className="text-red-400">*</span></label>
               <div className="flex gap-2">
-                {["$", "$$", "$$$", "$$$$"].map(range => (
+                {["₹", "₹₹", "₹₹₹", "₹₹₹₹"].map(range => (
                   <Button
                     key={range}
                     variant={priceRange === range ? "default" : "outline"}
@@ -697,21 +739,78 @@ export default function RestaurantForm({
               )}
             </div>
 
-            <div>
-              <label className="text-sm text-white/80 mb-2 block">Opening Hours</label>
-              <Textarea
-                placeholder="Mon-Fri: 11am-10pm&#10;Sat-Sun: 10am-11pm"
-                value={openingHours}
-                onChange={e => setOpeningHours(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 min-h-[80px]"
-              />
+            <div className="glass rounded-xl p-4 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm text-white/80">Serves Alcohol</label>
+                  <p className="text-white/50 text-xs">Liquor license will be required in Legal section</p>
+                </div>
+                <Switch checked={hasAlcohol} onCheckedChange={setHasAlcohol} />
+              </div>
             </div>
 
             <div>
+              <label className="text-sm text-white/80 mb-3 block flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-500" />
+                Opening Hours <span className="text-red-400">*</span>
+              </label>
+              <div className="glass rounded-xl border border-white/20 overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left text-xs text-white/60 p-3 font-medium">Day</th>
+                      <th className="text-left text-xs text-white/60 p-3 font-medium">Open</th>
+                      <th className="text-left text-xs text-white/60 p-3 font-medium">Close</th>
+                      <th className="text-center text-xs text-white/60 p-3 font-medium">Closed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {openingHours.map((dayInfo, idx) => (
+                      <tr key={dayInfo.day} className={idx < openingHours.length - 1 ? "border-b border-white/5" : ""}>
+                        <td className="p-3 text-white/80 text-sm font-medium">{dayInfo.day}</td>
+                        <td className="p-2">
+                          <Input
+                            type="time"
+                            value={dayInfo.openTime}
+                            onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
+                            disabled={dayInfo.isClosed}
+                            className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
+                          />
+                        </td>
+                        <td className="p-2">
+                          <Input
+                            type="time"
+                            value={dayInfo.closeTime}
+                            onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
+                            disabled={dayInfo.isClosed}
+                            className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <Checkbox
+                            checked={dayInfo.isClosed}
+                            onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
+                            className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-5">
+            <div>
               <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">
                 <Upload className="w-4 h-4 text-amber-500" />
-                Menu / Documents
+                Food Menu <span className="text-red-400">*</span>
               </label>
+              <p className="text-white/50 text-sm mb-3">Upload images or PDF of your restaurant menu</p>
               {foodMenuPics.length > 0 && (
                 <UploadedFiles files={foodMenuPics} restaurantId={createdRestaurantId} onFilesUpdated={setFoodMenuPics} />
               )}
@@ -723,7 +822,7 @@ export default function RestaurantForm({
           </div>
         )
 
-      case 4:
+      case 5:
         return (
           <div className="space-y-5">
             <div>
@@ -776,11 +875,11 @@ export default function RestaurantForm({
           </div>
         )
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-5 w-full overflow-hidden">
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
-              <label className="text-sm text-white/80 mb-3 block font-medium">FSSAI License</label>
+              <label className="text-sm text-white/80 mb-3 block font-medium">FSSAI License <span className="text-red-400">*</span></label>
               <Input
                 placeholder="License Number"
                 value={fssailicensenumber}
@@ -801,7 +900,7 @@ export default function RestaurantForm({
             </div>
 
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
-              <label className="text-sm text-white/80 mb-3 block font-medium">GST Registration</label>
+              <label className="text-sm text-white/80 mb-3 block font-medium">GST Registration <span className="text-red-400">*</span></label>
               <Input
                 placeholder="GST Number"
                 value={gstnumber}
@@ -822,7 +921,7 @@ export default function RestaurantForm({
             </div>
 
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
-              <label className="text-sm text-white/80 mb-3 block font-medium">PAN Card</label>
+              <label className="text-sm text-white/80 mb-3 block font-medium">PAN Card <span className="text-red-400">*</span></label>
               <Input
                 placeholder="PAN Number"
                 value={pannumber}
@@ -843,7 +942,7 @@ export default function RestaurantForm({
             </div>
 
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
-              <label className="text-sm text-white/80 mb-3 block font-medium">BBMP Trade License</label>
+              <label className="text-sm text-white/80 mb-3 block font-medium">BBMP Trade License <span className="text-red-400">*</span></label>
               {bbmptradelicense ? (
                 <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
                   <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
@@ -856,10 +955,28 @@ export default function RestaurantForm({
               )}
               {bbmpLicenseFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{bbmpLicenseFiles[0].name}</p>}
             </div>
+
+            {hasAlcohol && (
+              <div className="glass rounded-xl p-4 border border-amber-500/40 w-full overflow-hidden">
+                <label className="text-sm text-white/80 mb-3 block font-medium">Liquor License <span className="text-red-400">*</span></label>
+                <p className="text-amber-400/80 text-xs mb-3">Required because restaurant serves alcohol</p>
+                {liquorlicense ? (
+                  <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
+                    <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    <span className="text-white/80 text-sm flex-1 truncate min-w-0">License uploaded</span>
+                    <Button size="sm" variant="ghost" className="h-7 text-white/60 flex-shrink-0" onClick={() => window.open(liquorlicense, "_blank")}>Open</Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-red-400 flex-shrink-0" onClick={() => setLiquorLicense(null)}><X className="w-3 h-3" /></Button>
+                  </div>
+                ) : (
+                  <FileDropzone maxFiles={1} accept={{ "image/*": [], "application/pdf": [] }} onFilesSelected={setLiquorLicenseFiles} />
+                )}
+                {liquorLicenseFiles.length > 0 && <p className="text-white/60 text-xs mt-1 truncate">{liquorLicenseFiles[0].name}</p>}
+              </div>
+            )}
           </div>
         )
 
-      case 6:
+      case 7:
         return (
           <div className="space-y-5">
             <div className="glass rounded-xl p-5 border border-white/20">
@@ -918,16 +1035,13 @@ export default function RestaurantForm({
             const StepIcon = step.icon
             const isActive = currentStep === step.id
             const isCompleted = currentStep > step.id
-            const isAccessible = isEditMode || createdRestaurantId || step.id === 1
+            const isMandatory = MANDATORY_STEPS.includes(step.id)
 
             return (
               <button
                 key={step.id}
-                onClick={() => isAccessible && setCurrentStep(step.id)}
-                disabled={!isAccessible}
-                className={`flex flex-col items-center gap-1 min-w-[50px] sm:min-w-[60px] transition-all ${
-                  isAccessible ? "cursor-pointer" : "cursor-not-allowed opacity-50"
-                }`}
+                onClick={() => setCurrentStep(step.id)}
+                className="flex flex-col items-center gap-1 min-w-[50px] sm:min-w-[60px] transition-all cursor-pointer"
               >
                 <div
                   className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
@@ -978,14 +1092,24 @@ export default function RestaurantForm({
           </Button>
         )}
 
-        <Button
-          onClick={handleSaveAndContinue}
-          disabled={loading}
-          className="flex-1 gradient-amber text-black font-semibold h-12 rounded-xl hover:opacity-90 transition-opacity"
-        >
-          {loading ? "Saving..." : currentStep === 6 ? "Complete Setup" : "Save & Continue"}
-          {!loading && currentStep < 6 && <ChevronRight className="w-4 h-4 ml-1" />}
-        </Button>
+        {currentStep < 7 ? (
+          <Button
+            onClick={handleNextStep}
+            className="flex-1 gradient-amber text-black font-semibold h-12 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            Next Step
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        ) : (
+          <Button
+            onClick={handleFinalSubmit}
+            disabled={loading}
+            className="flex-1 gradient-amber text-black font-semibold h-12 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            {loading ? "Creating Restaurant..." : "Submit"}
+            {!loading && <Check className="w-4 h-4 ml-1" />}
+          </Button>
+        )}
       </div>
     </div>
   )

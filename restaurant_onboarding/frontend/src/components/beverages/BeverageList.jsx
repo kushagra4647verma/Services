@@ -12,10 +12,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Wine, Plus, Edit, Trash2, X, Check, ArrowLeft, DollarSign, Star, Tag, Droplets, Beaker, AlertTriangle, Sparkles, FileText, Eye } from "lucide-react"
+import { Wine, Plus, Edit, Trash2, X, Check, ArrowLeft, IndianRupee, Star, Tag, Droplets, Beaker, AlertTriangle, Sparkles, FileText, Eye, Utensils } from "lucide-react"
 
 const CATEGORIES = ["Cocktail", "Mocktail", "Beer", "Wine", "Whiskey", "Vodka", "Rum", "Gin", "Tequila", "Coffee", "Tea", "Juice", "Smoothie", "Other"]
-const BASE_TYPES = ["Alcoholic", "Non-Alcoholic"]
+const DRINK_TYPES = ["Alcoholic", "Non-Alcoholic"]
 
 export default function BeverageList({ restaurantId }) {
   const [beverages, setBeverages] = useState([])
@@ -80,10 +80,11 @@ export default function BeverageList({ restaurantId }) {
     setEditData({
       name: beverage.name || "",
       category: beverage.category || "",
+      drinkType: beverage.drinkType || "",
       baseType: beverage.baseType || "",
-      type: beverage.type || "",
       ingredients: beverage.ingredients || [],
       allergens: beverage.allergens || [],
+      perfectPairing: beverage.perfectPairing || [],
       price: beverage.price || "",
       sizeVol: beverage.sizeVol || "",
       isSignatureItem: beverage.isSignatureItem || false,
@@ -194,12 +195,12 @@ export default function BeverageList({ restaurantId }) {
                   Signature
                 </span>
               )}
-              {b.baseType && (
-                <span className="px-2 py-0.5 glass rounded-full text-white/80 text-xs">{b.baseType}</span>
+              {b.drinkType && (
+                <span className="px-2 py-0.5 glass rounded-full text-white/80 text-xs">{b.drinkType}</span>
               )}
             </div>
             <h2 className="text-white text-2xl font-bold">{b.name}</h2>
-            {b.type && <p className="text-white/60 text-sm">{b.type}</p>}
+            {b.baseType && <p className="text-white/60 text-sm">{b.baseType}</p>}
           </div>
         </div>
 
@@ -231,8 +232,12 @@ export default function BeverageList({ restaurantId }) {
               <span className="text-white">{b.category || "—"}</span>
             </div>
             <div className="flex justify-between py-1">
-              <span className="text-white/60">Type</span>
-              <span className="text-white">{b.type || "—"}</span>
+              <span className="text-white/60">Drink Type</span>
+              <span className="text-white">{b.drinkType || "—"}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-white/60">Base Type</span>
+              <span className="text-white">{b.baseType || "—"}</span>
             </div>
             {b.description && (
               <div className="py-2">
@@ -271,6 +276,17 @@ export default function BeverageList({ restaurantId }) {
               Flavor Profile
             </h3>
             <TagList items={b.flavorTags} color="purple" />
+          </div>
+        )}
+
+        {/* Perfect Pairing */}
+        {b.perfectPairing?.length > 0 && (
+          <div className="glass rounded-xl p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <Utensils className="w-4 h-4 text-green-500" />
+              Perfect Pairing
+            </h3>
+            <TagList items={b.perfectPairing} color="green" />
           </div>
         )}
 
