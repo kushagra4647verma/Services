@@ -1,11 +1,12 @@
-import { Store, MapPin, CheckCircle2, XCircle, User, Calendar } from "lucide-react"
+import { Store, MapPin, CheckCircle2, XCircle, User, Calendar, AlertTriangle } from "lucide-react"
 
 export default function RestaurantList({ restaurants, onSelect }) {
-  // Get first image from foodMenuPics or use a placeholder
+  // Get cover image, logo, or first gallery image
   const getRestaurantImage = (restaurant) => {
-    if (restaurant.foodMenuPics && restaurant.foodMenuPics.length > 0) {
-      return restaurant.foodMenuPics[0]
-    }
+    if (restaurant.coverImage) return restaurant.coverImage
+    if (restaurant.logoImage) return restaurant.logoImage
+    if (restaurant.gallery?.length > 0) return restaurant.gallery[0]
+    if (restaurant.foodMenuPics?.length > 0) return restaurant.foodMenuPics[0]
     return null
   }
 
@@ -45,8 +46,14 @@ export default function RestaurantList({ restaurants, onSelect }) {
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               
-              {/* Status Badge */}
-              <div className="absolute top-3 right-3 flex items-center gap-2">
+              {/* Status Badges */}
+              <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
+                {r.iscomplete === false && (
+                  <div className="px-2 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-amber-500" />
+                    <span className="text-amber-500 text-xs font-medium">Incomplete</span>
+                  </div>
+                )}
                 {r.isVerified ? (
                   <div className="px-2 py-1 rounded-full bg-green-500/20 border border-green-500/40 flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3 text-green-500" />
@@ -96,8 +103,25 @@ export default function RestaurantList({ restaurants, onSelect }) {
                 {r.phone && (
                   <span className="text-xs px-2 py-1 glass rounded-full text-white/80">📞 {r.phone}</span>
                 )}
+                {r.priceRange && (
+                  <span className="text-xs px-2 py-1 glass rounded-full text-amber-400">
+                    {r.priceRange === 1 ? "₹" : r.priceRange === 2 ? "₹₹" : r.priceRange === 3 ? "₹₹₹" : "₹₹₹₹"}
+                  </span>
+                )}
+                {r.hasAlcohol && (
+                  <span className="text-xs px-2 py-1 glass rounded-full text-red-400">🍺 Alcohol</span>
+                )}
+                {r.hasReservation && (
+                  <span className="text-xs px-2 py-1 glass rounded-full text-green-400">📅 Reservations</span>
+                )}
+                {r.cuisineTags?.length > 0 && (
+                  <span className="text-xs px-2 py-1 glass rounded-full text-purple-400">🍽️ {r.cuisineTags.length} cuisines</span>
+                )}
+                {r.gallery?.length > 0 && (
+                  <span className="text-xs px-2 py-1 glass rounded-full text-blue-400">📸 {r.gallery.length} photos</span>
+                )}
                 {r.foodMenuPics?.length > 0 && (
-                  <span className="text-xs px-2 py-1 glass rounded-full text-amber-500/80">📄 {r.foodMenuPics.length} doc(s)</span>
+                  <span className="text-xs px-2 py-1 glass rounded-full text-amber-500/80">📄 {r.foodMenuPics.length} menu(s)</span>
                 )}
               </div>
             </div>

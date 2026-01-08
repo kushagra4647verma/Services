@@ -99,7 +99,7 @@ export default function BeverageList({ restaurantId }) {
               </div>
 
               <div className="text-amber-500 text-sm mt-2 flex items-center gap-1">
-                <DollarSign className="w-3 h-3" />
+                
                 {beverage.price ? `₹${beverage.price}` : <span className="text-white/30 italic">No price</span>}
               </div>
             </div>
@@ -157,7 +157,7 @@ function BeverageDetailView({ beverage }) {
       {/* Price & Size */}
       <div className="flex items-center gap-6">
         <div className="flex items-center gap-2">
-          <DollarSign className="w-5 h-5 text-amber-500" />
+          
           {beverage.price ? (
             <span className="text-white text-lg font-semibold">₹{beverage.price}</span>
           ) : (
@@ -167,7 +167,7 @@ function BeverageDetailView({ beverage }) {
         <div className="flex items-center gap-2 text-white/60">
           <Droplets className="w-4 h-4" />
           {beverage.sizeVol ? (
-            <span>{beverage.sizeVol}</span>
+            <span>{beverage.sizeVol} ml</span>
           ) : (
             <span className="text-white/30 italic">Size not set</span>
           )}

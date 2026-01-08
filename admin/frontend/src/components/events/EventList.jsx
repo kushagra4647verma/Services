@@ -131,57 +131,80 @@ function EventDetailView({ event, formatDate, formatTime }) {
   return (
     <div className="glass-strong rounded-xl overflow-hidden">
       {/* Event Photo */}
-      {event.photo && (
-        <div className="h-48 relative">
-          <img
-            src={event.photo}
-            alt={event.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        </div>
-      )}
+      <div className="h-48 relative">
+        {event.photo ? (
+          <>
+            <img
+              src={event.photo}
+              alt={event.name}
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          </>
+        ) : (
+          <div className="w-full h-full bg-white/5 flex items-center justify-center">
+            <div className="text-center">
+              <Image className="w-10 h-10 text-white/20 mx-auto" />
+              <p className="text-white/30 text-xs mt-1">No event photo</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="p-6 space-y-4">
         {/* Title */}
-        <h3 className="text-white text-xl font-bold">{event.name}</h3>
+        <h3 className="text-white text-xl font-bold">
+          {event.name || <span className="text-white/30 italic font-normal">Unnamed Event</span>}
+        </h3>
 
         {/* Date & Time */}
         <div className="flex flex-wrap gap-4">
-          {event.eventDate && (
-            <div className="flex items-center gap-2 text-white/80">
-              <Calendar className="w-5 h-5 text-amber-500" />
+          <div className="flex items-center gap-2 text-white/80">
+            <Calendar className="w-5 h-5 text-amber-500" />
+            {event.eventDate ? (
               <span>{formatDate(event.eventDate)}</span>
-            </div>
-          )}
-          {event.eventTime && (
-            <div className="flex items-center gap-2 text-white/80">
-              <Clock className="w-5 h-5 text-amber-500" />
+            ) : (
+              <span className="text-white/30 italic">Date not set</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-white/80">
+            <Clock className="w-5 h-5 text-amber-500" />
+            {event.eventTime ? (
               <span>{formatTime(event.eventTime)}</span>
-            </div>
-          )}
+            ) : (
+              <span className="text-white/30 italic">Time not set</span>
+            )}
+          </div>
         </div>
 
         {/* Description */}
-        {event.description && (
-          <div>
+        <div>
+          <h4 className="text-white/50 text-sm mb-1">Description</h4>
+          {event.description ? (
             <p className="text-white/70 whitespace-pre-line">{event.description}</p>
-          </div>
-        )}
+          ) : (
+            <p className="text-white/30 italic">No description provided</p>
+          )}
+        </div>
 
         {/* Booking Link */}
-        {event.bookingLink && (
-          <a
-            href={event.bookingLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-amber-500 hover:text-amber-400 transition-colors"
-          >
-            <Link className="w-4 h-4" />
-            Booking Link
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
+        <div>
+          <h4 className="text-white/50 text-sm mb-1">Booking Link</h4>
+          {event.bookingLink ? (
+            <a
+              href={event.bookingLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-amber-500 hover:text-amber-400 transition-colors"
+            >
+              <Link className="w-4 h-4" />
+              {event.bookingLink.length > 40 ? `${event.bookingLink.substring(0, 40)}...` : event.bookingLink}
+              <ExternalLink className="w-3 h-3" />
+            </a>
+          ) : (
+            <p className="text-white/30 italic">No booking link provided</p>
+          )}
+        </div>
       </div>
     </div>
   )
