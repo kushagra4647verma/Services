@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { getBeverages } from "../../api/beverages"
 import { Badge } from "@/components/ui/badge"
-import { Wine, DollarSign, Star, Tag, Droplets, Beaker, AlertTriangle, Sparkles, FileText } from "lucide-react"
+import { Wine, DollarSign, Star, Tag, Droplets, Beaker, AlertTriangle, Sparkles, FileText, Utensils } from "lucide-react"
 
 export default function BeverageList({ restaurantId }) {
   const [beverages, setBeverages] = useState([])
@@ -90,24 +90,18 @@ export default function BeverageList({ restaurantId }) {
               </div>
               
               <div className="flex flex-wrap gap-2 mt-1">
-                {beverage.category && (
-                  <Badge variant="outline" className="text-xs border-white/20 text-white/60">
-                    {beverage.category}
-                  </Badge>
-                )}
-                {beverage.baseType && (
-                  <Badge variant="outline" className={`text-xs border-white/20 ${beverage.baseType === 'Alcoholic' ? 'text-red-400' : 'text-green-400'}`}>
-                    {beverage.baseType}
-                  </Badge>
-                )}
+                <Badge variant="outline" className="text-xs border-white/20 text-white/60">
+                  {beverage.category || <span className="text-white/30 italic">No category</span>}
+                </Badge>
+                <Badge variant="outline" className={`text-xs border-white/20 ${beverage.drinkType === 'Alcoholic' ? 'text-red-400' : beverage.drinkType === 'Non-Alcoholic' ? 'text-green-400' : 'text-white/30'}`}>
+                  {beverage.drinkType || <span className="italic">No type</span>}
+                </Badge>
               </div>
 
-              {beverage.price && (
-                <div className="text-amber-500 text-sm mt-2 flex items-center gap-1">
-                  <DollarSign className="w-3 h-3" />
-                  ₹{beverage.price}
-                </div>
-              )}
+              <div className="text-amber-500 text-sm mt-2 flex items-center gap-1">
+                <DollarSign className="w-3 h-3" />
+                {beverage.price ? `₹${beverage.price}` : <span className="text-white/30 italic">No price</span>}
+              </div>
             </div>
           </div>
         </div>
@@ -146,60 +140,60 @@ function BeverageDetailView({ beverage }) {
           </div>
 
           <div className="flex flex-wrap gap-2 mt-2">
-            {beverage.category && (
-              <Badge variant="outline" className="border-white/20 text-white/60">
-                <Tag className="w-3 h-3 mr-1" />
-                {beverage.category}
-              </Badge>
-            )}
-            {beverage.baseType && (
-              <Badge variant="outline" className={`border-white/20 ${beverage.baseType === 'Alcoholic' ? 'text-red-400' : 'text-green-400'}`}>
-                {beverage.baseType}
-              </Badge>
-            )}
-            {beverage.type && (
-              <Badge variant="outline" className="border-white/20 text-white/60">
-                {beverage.type}
-              </Badge>
-            )}
+            <Badge variant="outline" className="border-white/20 text-white/60">
+              <Tag className="w-3 h-3 mr-1" />
+              {beverage.category || <span className="text-white/30 italic">No category</span>}
+            </Badge>
+            <Badge variant="outline" className={`border-white/20 ${beverage.drinkType === 'Alcoholic' ? 'text-red-400' : beverage.drinkType === 'Non-Alcoholic' ? 'text-green-400' : 'text-white/30'}`}>
+              {beverage.drinkType || <span className="italic">No drink type</span>}
+            </Badge>
+            <Badge variant="outline" className="border-white/20 text-white/60">
+              {beverage.baseType || <span className="text-white/30 italic">No style</span>}
+            </Badge>
           </div>
         </div>
       </div>
 
       {/* Price & Size */}
       <div className="flex items-center gap-6">
-        {beverage.price && (
-          <div className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-amber-500" />
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-amber-500" />
+          {beverage.price ? (
             <span className="text-white text-lg font-semibold">₹{beverage.price}</span>
-          </div>
-        )}
-        {beverage.sizeVol && (
-          <div className="flex items-center gap-2 text-white/60">
-            <Droplets className="w-4 h-4" />
+          ) : (
+            <span className="text-white/30 italic">Price not set</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-white/60">
+          <Droplets className="w-4 h-4" />
+          {beverage.sizeVol ? (
             <span>{beverage.sizeVol}</span>
-          </div>
-        )}
+          ) : (
+            <span className="text-white/30 italic">Size not set</span>
+          )}
+        </div>
       </div>
 
       {/* Description */}
-      {beverage.description && (
-        <div>
-          <h4 className="text-white/50 text-sm mb-1 flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Description
-          </h4>
+      <div>
+        <h4 className="text-white/50 text-sm mb-1 flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          Description
+        </h4>
+        {beverage.description ? (
           <p className="text-white/80">{beverage.description}</p>
-        </div>
-      )}
+        ) : (
+          <p className="text-white/30 italic">No description provided</p>
+        )}
+      </div>
 
       {/* Ingredients */}
-      {beverage.ingredients?.length > 0 && (
-        <div>
-          <h4 className="text-white/50 text-sm mb-2 flex items-center gap-2">
-            <Beaker className="w-4 h-4" />
-            Ingredients
-          </h4>
+      <div>
+        <h4 className="text-white/50 text-sm mb-2 flex items-center gap-2">
+          <Beaker className="w-4 h-4" />
+          Ingredients
+        </h4>
+        {beverage.ingredients?.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {beverage.ingredients.map((ing, idx) => (
               <Badge key={idx} variant="outline" className="border-white/20 text-white/80">
@@ -207,16 +201,18 @@ function BeverageDetailView({ beverage }) {
               </Badge>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-white/30 italic">No ingredients listed</p>
+        )}
+      </div>
 
       {/* Allergens */}
-      {beverage.allergens?.length > 0 && (
-        <div>
-          <h4 className="text-red-400 text-sm mb-2 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Allergens
-          </h4>
+      <div>
+        <h4 className="text-red-400 text-sm mb-2 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4" />
+          Allergens
+        </h4>
+        {beverage.allergens?.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {beverage.allergens.map((allergen, idx) => (
               <Badge key={idx} variant="outline" className="border-red-400/30 text-red-400">
@@ -224,16 +220,18 @@ function BeverageDetailView({ beverage }) {
               </Badge>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-white/30 italic">No allergens specified</p>
+        )}
+      </div>
 
       {/* Flavor Tags */}
-      {beverage.flavorTags?.length > 0 && (
-        <div>
-          <h4 className="text-white/50 text-sm mb-2 flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
-            Flavor Profile
-          </h4>
+      <div>
+        <h4 className="text-white/50 text-sm mb-2 flex items-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          Flavor Profile
+        </h4>
+        {beverage.flavorTags?.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {beverage.flavorTags.map((flavor, idx) => (
               <Badge key={idx} className="bg-purple-500/20 text-purple-400 border-0">
@@ -241,8 +239,29 @@ function BeverageDetailView({ beverage }) {
               </Badge>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-white/30 italic">No flavor tags added</p>
+        )}
+      </div>
+
+      {/* Perfect Pairing */}
+      <div>
+        <h4 className="text-white/50 text-sm mb-2 flex items-center gap-2">
+          <Utensils className="w-4 h-4" />
+          Perfect Pairing
+        </h4>
+        {beverage.perfectPairing?.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {beverage.perfectPairing.map((pairing, idx) => (
+              <Badge key={idx} className="bg-green-500/20 text-green-400 border-0">
+                {pairing}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-white/30 italic">No food pairings specified</p>
+        )}
+      </div>
     </div>
   )
 }

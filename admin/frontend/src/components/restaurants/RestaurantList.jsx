@@ -83,7 +83,7 @@ export default function RestaurantList({ restaurants, onSelect }) {
               {/* Created Date */}
               <div className="flex items-center gap-2 text-white/50 text-xs">
                 <Calendar className="w-3 h-3" />
-                <span>Created: {formatDate(r.created_at)}</span>
+                <span>Created: {formatDate(r.createdAt)}</span>
               </div>
               
               {/* Bio */}
