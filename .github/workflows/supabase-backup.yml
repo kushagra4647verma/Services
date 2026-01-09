@@ -10,24 +10,26 @@ jobs:
   backup:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Install PostgreSQL 17 client
-        run: |
-          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client-17
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
 
-      - name: Dump Supabase database
-        env:
-          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          mkdir -p backups
-          pg_dump "$DATABASE_URL" \
-            --format=custom \
-            --no-owner \
-            --no-acl \
-            > backups/supabase_backup_$(date +%F).dump
+    steps:
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Create backup folder
+        run: mkdir -p backups
+
+      - name: Backup roles
+        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f backups/roles.sql --role-only
+
+      - name: Backup schema
+        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f backups/schema.sql
+
+      - name: Backup data
+        run: supabase db dump --db-url "$SUPABASE_DB_URL" -f backups/data.sql --data-only --use-copy
 
       - name: Get current date
         id: date
