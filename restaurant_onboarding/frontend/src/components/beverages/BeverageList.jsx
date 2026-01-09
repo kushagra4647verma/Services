@@ -3,8 +3,10 @@ import {
   getBeverages,
   createBeverage,
   deleteBeverage,
-  updateBeverage
+  updateBeverage,
+  copyBeveragesFromRestaurant
 } from "../../api/beverages"
+import { getMyRestaurants } from "../../api/restaurants"
 import BeverageForm from "./BeverageForm"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +14,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Wine, Plus, Edit, Trash2, X, Check, ArrowLeft, IndianRupee, Star, Tag, Droplets, Beaker, AlertTriangle, Sparkles, FileText, Eye, Utensils } from "lucide-react"
+import { toast } from "sonner"
+import { Wine, Plus, Edit, Trash2, X, Check, ArrowLeft, IndianRupee, Star, Tag, Droplets, Beaker, AlertTriangle, Sparkles, FileText, Eye, Utensils, Copy, Loader2 } from "lucide-react"
 
 const CATEGORIES = ["Alcoholic", "Non-Alcoholic"]
 
@@ -26,6 +29,11 @@ export default function BeverageList({ restaurantId }) {
   const [editData, setEditData] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  // Copy from restaurant feature
+  const [otherRestaurants, setOtherRestaurants] = useState([])
+  const [copyingBeverages, setCopyingBeverages] = useState(false)
+  const [selectedSourceRestaurant, setSelectedSourceRestaurant] = useState("")
+
   // Tag inputs for edit modal
   const [ingredientInput, setIngredientInput] = useState("")
   const [allergenInput, setAllergenInput] = useState("")
@@ -35,12 +43,38 @@ export default function BeverageList({ restaurantId }) {
     if (!restaurantId) return
 
     async function load() {
-      const data = await getBeverages(restaurantId)
-      setBeverages(data || [])
+      const [beveragesData, restaurantsData] = await Promise.all([
+        getBeverages(restaurantId),
+        getMyRestaurants()
+      ])
+      setBeverages(beveragesData || [])
+      // Filter out current restaurant from the list
+      setOtherRestaurants((restaurantsData || []).filter(r => r.id !== restaurantId))
     }
 
     load()
   }, [restaurantId])
+
+  async function handleCopyFromRestaurant() {
+    if (!selectedSourceRestaurant) return
+    
+    setCopyingBeverages(true)
+    try {
+      const result = await copyBeveragesFromRestaurant(restaurantId, selectedSourceRestaurant)
+      if (result && result.beverages && result.beverages.length > 0) {
+        setBeverages(prev => [...(prev || []), ...result.beverages])
+        // alert(`Successfully copied ${result.copied} beverage(s)!`)
+      } else {
+        alert("No beverages found in the selected restaurant.")
+      }
+      setSelectedSourceRestaurant("")
+    } catch (err) {
+      console.error("Copy error:", err)
+      alert("Failed to copy beverages. Please try again.")
+    } finally {
+      setCopyingBeverages(false)
+    }
+  }
 
   async function handleDelete(id) {
     if (!window.confirm("Delete beverage?")) return
@@ -333,6 +367,55 @@ export default function BeverageList({ restaurantId }) {
         <Plus className="w-4 h-4 mr-2" />
         Add Beverage
       </Button>
+
+      {/* Copy from Another Restaurant */}
+      {otherRestaurants.length > 0 && (
+        <div className="glass rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 text-white/80 text-sm">
+            <Copy className="w-4 h-4 text-amber-500" />
+            Copy from Another Restaurant
+          </div>
+          <div className="flex gap-2">
+            <Select 
+              value={selectedSourceRestaurant} 
+              onValueChange={setSelectedSourceRestaurant}
+              disabled={copyingBeverages}
+            >
+              <SelectTrigger className="glass border-white/20 text-white flex-1">
+                <SelectValue placeholder="Select a restaurant..." />
+              </SelectTrigger>
+              <SelectContent className="bg-[#1a1a1a] border-white/20">
+                {otherRestaurants.map(r => (
+                  <SelectItem key={r.id} value={r.id} className="text-white hover:bg-white/10">
+                    {r.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleCopyFromRestaurant}
+              disabled={!selectedSourceRestaurant || copyingBeverages}
+              className="glass border-white/20 text-white hover:bg-white/10 px-4"
+              variant="outline"
+            >
+              {copyingBeverages ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Copying...
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="text-white/40 text-xs">
+            This will copy all beverages from the selected restaurant (excluding ratings)
+          </p>
+        </div>
+      )}
 
       {/* Beverages Grid */}
       {beverages.length > 0 ? (

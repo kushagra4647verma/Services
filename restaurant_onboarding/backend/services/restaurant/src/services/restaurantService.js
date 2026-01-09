@@ -8,7 +8,7 @@ import {
   deleteRestaurantById
 } from "../repositories/restaurantRepo.js"
 
-import { deleteStorageFiles } from "../utils/deleteStorageFiles.js"
+import { deleteStorageFiles, deleteRestaurantFolder } from "../utils/deleteStorageFiles.js"
 
 function toGeographyPoint(location) {
   if (!location) return null
@@ -195,7 +195,8 @@ export async function removeRestaurant(restaurantId, ownerId) {
     throw new Error("Restaurant not found")
   }
 
-  await deleteStorageFiles(restaurant.foodMenuPics || [])
+  // Delete entire restaurant folder from storage (includes all images, documents, etc.)
+  await deleteRestaurantFolder(restaurantId)
 
   const { error: deleteError } =
     await deleteRestaurantById(restaurantId, ownerId)

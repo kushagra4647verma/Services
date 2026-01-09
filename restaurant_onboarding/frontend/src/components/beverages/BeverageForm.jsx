@@ -1,14 +1,16 @@
-import { useState } from "react"
-import { createBeverage, updateBeverage } from "../../api/beverages"
+import { useState, useEffect } from "react"
+import { createBeverage, updateBeverage, getAllUserBeverages } from "../../api/beverages"
 import { uploadRestaurantFiles } from "../../utils/uploadRestaurantFiles"
 import { deleteStorageFile } from "../../utils/deleteStorageFiles"
+import { copyImageToRestaurant } from "../../utils/copyImageToRestaurant"
 import FileDropzone from "../common/FileDropzone"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Wine, X, IndianRupee, Droplets, Sparkles, Tag, AlertTriangle, Beaker, FileText, Star, Image, Trash2, RefreshCw, ExternalLink, Utensils } from "lucide-react"
+import { toast } from "@/components/ui/sonner"
+import { Wine, X, IndianRupee, Droplets, Sparkles, Tag, AlertTriangle, Beaker, FileText, Star, Image, Trash2, RefreshCw, ExternalLink, Utensils, Copy, Loader2 } from "lucide-react"
 
 const CATEGORIES = ["Alcoholic", "Non-Alcoholic"]
 
@@ -85,6 +87,82 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
   const [pairingInput, setPairingInput] = useState("")
   const [selectedFile, setSelectedFile] = useState(null)
   const [loading, setLoading] = useState(false)
+
+  // Copy from another beverage feature
+  const [allBeverages, setAllBeverages] = useState([])
+  const [loadingBeverages, setLoadingBeverages] = useState(false)
+  const [copyingBeverage, setCopyingBeverage] = useState(false)
+  const [selectedBeverageToCopy, setSelectedBeverageToCopy] = useState("")
+
+  // Load all user's beverages for the copy feature (only when not editing)
+  useEffect(() => {
+    if (isEditing) return
+    
+    async function loadBeverages() {
+      setLoadingBeverages(true)
+      try {
+        const beverages = await getAllUserBeverages()
+        // Show ALL beverages from all restaurants (user can copy from same restaurant too)
+        setAllBeverages(beverages || [])
+      } catch (err) {
+        console.error("Failed to load beverages for copy:", err)
+      } finally {
+        setLoadingBeverages(false)
+      }
+    }
+    
+    loadBeverages()
+  }, [restaurantId, isEditing])
+
+  async function handleCopyBeverage() {
+    if (!selectedBeverageToCopy) return
+    
+    const beverageToCopy = allBeverages.find(b => b.id === selectedBeverageToCopy)
+    if (!beverageToCopy) return
+    
+    setCopyingBeverage(true)
+    
+    try {
+      let photoUrl = beverageToCopy.photo || ""
+      
+      // If beverage is from a different restaurant, copy the image to this restaurant's storage
+      if (beverageToCopy.restaurantid !== restaurantId && beverageToCopy.photo) {
+        try {
+          const newPhotoUrl = await copyImageToRestaurant(beverageToCopy.photo, restaurantId)
+          if (newPhotoUrl) {
+            photoUrl = newPhotoUrl
+            toast.success("Image copied to this restaurant's storage")
+          }
+        } catch (err) {
+          console.error("Failed to copy image:", err)
+          toast.error("Failed to copy image. You may need to upload a new one.")
+          photoUrl = "" // Clear photo since we couldn't copy it
+        }
+      }
+      
+      setFormData({
+        name: beverageToCopy.name || "",
+        category: beverageToCopy.category || "",
+        baseType: beverageToCopy.baseType || "",
+        ingredients: beverageToCopy.ingredients || [],
+        allergens: beverageToCopy.allergens || [],
+        perfectPairing: beverageToCopy.perfectPairing || [],
+        price: beverageToCopy.price || "",
+        sizeVol: beverageToCopy.sizeVol || "",
+        isSignatureItem: beverageToCopy.isSignatureItem || false,
+        flavorTags: beverageToCopy.flavorTags || [],
+        description: beverageToCopy.description || "",
+        photo: photoUrl,
+      })
+      setSelectedBeverageToCopy("")
+      toast.success("Beverage details copied!")
+    } catch (err) {
+      console.error("Failed to copy beverage:", err)
+      toast.error("Failed to copy beverage")
+    } finally {
+      setCopyingBeverage(false)
+    }
+  }
 
   function updateField(field, value) {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -204,6 +282,72 @@ export default function BeverageForm({ restaurantId, onCreate, onCancel, initial
 
   return (
     <div className="space-y-4 max-h-[70vh] overflow-y-auto overflow-x-hidden pr-2 w-full">
+      {/* Copy from Another Beverage - Only show when creating new beverage */}
+      {!isEditing && (
+        <div className="glass rounded-xl p-4 space-y-3 border border-amber-500/20">
+          <div className="flex items-center gap-2 text-white/80 text-sm">
+            <Copy className="w-4 h-4 text-amber-500" />
+            Copy from Another Beverage
+          </div>
+          {loadingBeverages ? (
+            <div className="flex items-center gap-2 text-white/50 text-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading beverages...
+            </div>
+          ) : allBeverages.length > 0 ? (
+            <>
+              <div className="flex gap-2">
+                <Select 
+                  value={selectedBeverageToCopy} 
+                  onValueChange={setSelectedBeverageToCopy}
+                  disabled={copyingBeverage}
+                >
+                  <SelectTrigger className="glass border-white/20 text-white flex-1">
+                    <SelectValue placeholder="Select a beverage..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a1a] border-white/20 max-h-60">
+                    {allBeverages.map(b => (
+                      <SelectItem key={b.id} value={b.id} className="text-white hover:bg-white/10">
+                        <div className="flex flex-col">
+                          <span className="font-medium">{b.name}</span>
+                          <span className="text-white/50 text-xs">{b.restaurantName}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  onClick={handleCopyBeverage}
+                  disabled={!selectedBeverageToCopy || copyingBeverage}
+                  className="glass border-white/20 text-white hover:bg-white/10 px-4"
+                  variant="outline"
+                >
+                  {copyingBeverage ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Copying...
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy
+                    </>
+                  )}
+                </Button>
+              </div>
+              <p className="text-white/40 text-xs">
+                This will fill the form with the selected beverage's details. You can then modify and save.
+              </p>
+            </>
+          ) : (
+            <p className="text-white/40 text-sm">
+              No beverages available to copy. Create your first beverage manually.
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Name */}
       <div className="w-full">
         <label className="text-sm text-white/80 mb-2 block flex items-center gap-2">

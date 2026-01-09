@@ -3,6 +3,13 @@ import { apiFetch } from "../apiClient"
 export const getBeverages = restaurantId =>
   apiFetch(`/restaurants/${restaurantId}/beverages`)
 
+export const getAllUserBeverages = () =>
+  apiFetch("/beverages/user/all")
+
+export const copyBeveragesFromRestaurant = (targetRestaurantId, sourceRestaurantId) =>
+  apiFetch(`/restaurants/${targetRestaurantId}/beverages/copy-from/${sourceRestaurantId}`, {
+    method: "POST"
+  })
 
 export const createBeverage = (restaurantId, data) =>
   apiFetch(`/restaurants/${restaurantId}/beverages`, {
