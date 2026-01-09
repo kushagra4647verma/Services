@@ -44,6 +44,12 @@ function formatTime(time) {
   return `${h12}:${minutes} ${ampm}`
 }
 
+// Check if closing time is before or equal to opening time (next day)
+function isNextDayClosing(openTime, closeTime) {
+  if (!openTime || !closeTime) return false
+  return closeTime <= openTime
+}
+
 export default function RestaurantDetail({
   restaurant,
   onRestaurantUpdated
@@ -284,18 +290,26 @@ export default function RestaurantDetail({
                 if (hours && Array.isArray(hours)) {
                   return (
                     <div className="grid grid-cols-1 gap-1">
-                      {hours.map((dayInfo) => (
-                        <div key={dayInfo.day} className="flex items-center justify-between text-sm py-1">
-                          <span className="text-white/70 w-24">{dayInfo.day.slice(0, 3)}</span>
-                          {dayInfo.isClosed ? (
-                            <span className="text-red-400">Closed</span>
-                          ) : (
-                            <span className="text-white/60">
-                              {formatTime(dayInfo.openTime)} - {formatTime(dayInfo.closeTime)}
-                            </span>
-                          )}
-                        </div>
-                      ))}
+                      {hours.map((dayInfo) => {
+                        const showNextDay = !dayInfo.isClosed && isNextDayClosing(dayInfo.openTime, dayInfo.closeTime)
+                        return (
+                          <div key={dayInfo.day} className="flex items-center justify-between text-sm py-1">
+                            <span className="text-white/70 w-24">{dayInfo.day.slice(0, 3)}</span>
+                            {dayInfo.isClosed ? (
+                              <span className="text-red-400">Closed</span>
+                            ) : (
+                              <span className="text-white/60 flex items-center gap-1">
+                                {formatTime(dayInfo.openTime)} - {formatTime(dayInfo.closeTime)}
+                                {showNextDay && (
+                                  <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded" title="Closes next day">
+                                    +1
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   )
                 } else {

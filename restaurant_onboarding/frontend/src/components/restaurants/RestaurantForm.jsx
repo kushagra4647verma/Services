@@ -49,6 +49,44 @@ function priceRangeToDb(displayValue) {
   return found ? found.value : 2
 }
 
+// Check if closing time is before or equal to opening time (next day)
+function isNextDayClosing(openTime, closeTime) {
+  if (!openTime || !closeTime) return false
+  return closeTime <= openTime
+}
+
+// Validation patterns for legal document numbers
+const FSSAI_REGEX = /^\d{14}$/  // 14 digit number
+const GST_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/  // Standard GST format
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/  // Standard PAN format
+
+function validateFssaiNumber(value) {
+  if (!value) return { valid: true, message: '' }
+  const trimmed = value.trim()
+  if (!FSSAI_REGEX.test(trimmed)) {
+    return { valid: false, message: 'FSSAI number must be exactly 14 digits' }
+  }
+  return { valid: true, message: '' }
+}
+
+function validateGstNumber(value) {
+  if (!value) return { valid: true, message: '' }
+  const trimmed = value.trim().toUpperCase()
+  if (!GST_REGEX.test(trimmed)) {
+    return { valid: false, message: 'Invalid GST format (e.g., 22AAAAA0000A1Z5)' }
+  }
+  return { valid: true, message: '' }
+}
+
+function validatePanNumber(value) {
+  if (!value) return { valid: true, message: '' }
+  const trimmed = value.trim().toUpperCase()
+  if (!PAN_REGEX.test(trimmed)) {
+    return { valid: false, message: 'Invalid PAN format (e.g., ABCDE1234F)' }
+  }
+  return { valid: true, message: '' }
+}
+
 // Parse opening hours from JSON or return default
 function parseOpeningHours(hoursData) {
   if (!hoursData) return getDefaultOpeningHours()
@@ -221,6 +259,11 @@ export default function RestaurantForm({
   const [accountnumber, setAccountNumber] = useState(editBankDetails?.accountnumber || "")
   const [ifsccode, setIfscCode] = useState(editBankDetails?.ifsccode || "")
 
+  // Validation error states
+  const [fssaiError, setFssaiError] = useState('')
+  const [gstError, setGstError] = useState('')
+  const [panError, setPanError] = useState('')
+
   // Menu documents
   const [menuFiles, setMenuFiles] = useState([])
   const [foodMenuPics, setFoodMenuPics] = useState(editRestaurant?.foodMenuPics || [])
@@ -368,6 +411,12 @@ export default function RestaurantForm({
       alert("FSSAI License Number is required")
       return false
     }
+    const fssaiValidation = validateFssaiNumber(fssailicensenumber)
+    if (!fssaiValidation.valid) {
+      alert(fssaiValidation.message)
+      setFssaiError(fssaiValidation.message)
+      return false
+    }
     if (fssaicertificate.length === 0 && fssaiCertFiles.length === 0) {
       alert("FSSAI Certificate is required")
       return false
@@ -376,12 +425,24 @@ export default function RestaurantForm({
       alert("GST Number is required")
       return false
     }
+    const gstValidation = validateGstNumber(gstnumber)
+    if (!gstValidation.valid) {
+      alert(gstValidation.message)
+      setGstError(gstValidation.message)
+      return false
+    }
     if (!gstcertificate && gstCertFiles.length === 0) {
       alert("GST Certificate is required")
       return false
     }
     if (!pannumber.trim()) {
       alert("PAN Number is required")
+      return false
+    }
+    const panValidation = validatePanNumber(pannumber)
+    if (!panValidation.valid) {
+      alert(panValidation.message)
+      setPanError(panValidation.message)
       return false
     }
     if (!panimage && panImageFiles.length === 0) {
@@ -996,6 +1057,16 @@ export default function RestaurantForm({
                 <FileDropzone maxFiles={5} existingCount={gallery.length} accept={{ "image/*": [] }} files={galleryFiles} onFilesSelected={setGalleryFiles} />
               </div>
             </div>
+
+            <div className="glass rounded-xl p-4 border border-white/20">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm text-white/80">Serves Alcohol</label>
+                  <p className="text-white/50 text-xs">Liquor license will be required in Legal section</p>
+                </div>
+                <Switch checked={hasAlcohol} onCheckedChange={setHasAlcohol} />
+              </div>
+            </div>
           </div>
         )
 
@@ -1077,16 +1148,6 @@ export default function RestaurantForm({
               )}
             </div>
 
-            <div className="glass rounded-xl p-4 border border-white/20">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm text-white/80">Serves Alcohol</label>
-                  <p className="text-white/50 text-xs">Liquor license will be required in Legal section</p>
-                </div>
-                <Switch checked={hasAlcohol} onCheckedChange={setHasAlcohol} />
-              </div>
-            </div>
-
             <div>
               <label className="text-sm text-white/80 mb-3 block flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-500" />
@@ -1105,82 +1166,102 @@ export default function RestaurantForm({
                     </tr>
                   </thead>
                   <tbody>
-                    {openingHours.map((dayInfo, idx) => (
-                      <tr key={dayInfo.day} className={idx < openingHours.length - 1 ? "border-b border-white/5" : ""}>
-                        <td className="p-3 text-white/80 text-sm font-medium">{dayInfo.day}</td>
-                        <td className="p-2">
-                          <Input
-                            type="time"
-                            value={dayInfo.openTime}
-                            onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
-                            disabled={dayInfo.isClosed}
-                            className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
-                          />
-                        </td>
-                        <td className="p-2">
-                          <Input
-                            type="time"
-                            value={dayInfo.closeTime}
-                            onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
-                            disabled={dayInfo.isClosed}
-                            className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <Checkbox
-                            checked={dayInfo.isClosed}
-                            onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
-                            className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
-                          />
-                        </td>
-                      </tr>
-                    ))}
+                    {openingHours.map((dayInfo, idx) => {
+                      const showNextDay = !dayInfo.isClosed && isNextDayClosing(dayInfo.openTime, dayInfo.closeTime)
+                      return (
+                        <tr key={dayInfo.day} className={idx < openingHours.length - 1 ? "border-b border-white/5" : ""}>
+                          <td className="p-3 text-white/80 text-sm font-medium">{dayInfo.day}</td>
+                          <td className="p-2">
+                            <Input
+                              type="time"
+                              value={dayInfo.openTime}
+                              onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
+                              disabled={dayInfo.isClosed}
+                              className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
+                            />
+                          </td>
+                          <td className="p-2">
+                            <div className="flex items-center gap-1">
+                              <Input
+                                type="time"
+                                value={dayInfo.closeTime}
+                                onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
+                                disabled={dayInfo.isClosed}
+                                className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
+                              />
+                              {showNextDay && (
+                                <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1.5 py-0.5 rounded" title="Closes next day">
+                                  +1
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-3 text-center">
+                            <Checkbox
+                              checked={dayInfo.isClosed}
+                              onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
+                              className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                            />
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile Card View */}
               <div className="sm:hidden space-y-2">
-                {openingHours.map((dayInfo, idx) => (
-                  <div key={dayInfo.day} className="glass rounded-xl border border-white/20 p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white font-medium text-sm">{dayInfo.day}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-white/50 text-xs">Closed</span>
-                        <Checkbox
-                          checked={dayInfo.isClosed}
-                          onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
-                          className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
-                        />
+                {openingHours.map((dayInfo, idx) => {
+                  const showNextDay = !dayInfo.isClosed && isNextDayClosing(dayInfo.openTime, dayInfo.closeTime)
+                  return (
+                    <div key={dayInfo.day} className="glass rounded-xl border border-white/20 p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-white font-medium text-sm">{dayInfo.day}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-white/50 text-xs">Closed</span>
+                          <Checkbox
+                            checked={dayInfo.isClosed}
+                            onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
+                            className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                          />
+                        </div>
                       </div>
+                      {!dayInfo.isClosed && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-white/50 text-xs mb-1 block">Open</label>
+                            <Input
+                              type="time"
+                              value={dayInfo.openTime}
+                              onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
+                              className="glass border-white/20 text-white h-9 text-sm w-full"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-white/50 text-xs mb-1 block flex items-center gap-1">
+                              Close
+                              {showNextDay && (
+                                <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded" title="Closes next day">
+                                  +1
+                                </span>
+                              )}
+                            </label>
+                            <Input
+                              type="time"
+                              value={dayInfo.closeTime}
+                              onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
+                              className="glass border-white/20 text-white h-9 text-sm w-full"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {dayInfo.isClosed && (
+                        <div className="text-red-400/80 text-xs text-center py-2">Closed on this day</div>
+                      )}
                     </div>
-                    {!dayInfo.isClosed && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-white/50 text-xs mb-1 block">Open</label>
-                          <Input
-                            type="time"
-                            value={dayInfo.openTime}
-                            onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
-                            className="glass border-white/20 text-white h-9 text-sm w-full"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-white/50 text-xs mb-1 block">Close</label>
-                          <Input
-                            type="time"
-                            value={dayInfo.closeTime}
-                            onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
-                            className="glass border-white/20 text-white h-9 text-sm w-full"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {dayInfo.isClosed && (
-                      <div className="text-red-400/80 text-xs text-center py-2">Closed on this day</div>
-                    )}
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -1264,11 +1345,23 @@ export default function RestaurantForm({
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-3 block font-medium">FSSAI License <span className="text-red-400">*</span></label>
               <Input
-                placeholder="License Number"
+                placeholder="14 digit license number"
                 value={fssailicensenumber}
-                onChange={e => setFssaiLicenseNumber(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3 w-full"
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, '').slice(0, 14)
+                  setFssaiLicenseNumber(val)
+                  // Only show error when full length is entered
+                  if (val.length === 14) {
+                    const validation = validateFssaiNumber(val)
+                    setFssaiError(!validation.valid ? validation.message : '')
+                  } else {
+                    setFssaiError('')
+                  }
+                }}
+                className={`glass border-white/20 text-white placeholder:text-white/40 h-10 mb-1 w-full ${fssaiError ? 'border-red-500' : ''}`}
               />
+              {fssaiError && <p className="text-red-400 text-xs mb-2">{fssaiError}</p>}
+              {!fssaiError && <div className="mb-2" />}
               {/* Display existing FSSAI certificates */}
               {fssaicertificate.length > 0 && (
                 <div className="space-y-2 mb-3">
@@ -1295,11 +1388,23 @@ export default function RestaurantForm({
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-3 block font-medium">GST Registration <span className="text-red-400">*</span></label>
               <Input
-                placeholder="GST Number"
+                placeholder="e.g., 22AAAAA0000A1Z5"
                 value={gstnumber}
-                onChange={e => setGstNumber(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3 w-full"
+                onChange={e => {
+                  const val = e.target.value.toUpperCase().slice(0, 15)
+                  setGstNumber(val)
+                  // Only show error when full length is entered
+                  if (val.length === 15) {
+                    const validation = validateGstNumber(val)
+                    setGstError(!validation.valid ? validation.message : '')
+                  } else {
+                    setGstError('')
+                  }
+                }}
+                className={`glass border-white/20 text-white placeholder:text-white/40 h-10 mb-1 w-full ${gstError ? 'border-red-500' : ''}`}
               />
+              {gstError && <p className="text-red-400 text-xs mb-2">{gstError}</p>}
+              {!gstError && <div className="mb-2" />}
               {gstcertificate ? (
                 <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
                   <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
@@ -1315,11 +1420,23 @@ export default function RestaurantForm({
             <div className="glass rounded-xl p-4 border border-white/20 w-full overflow-hidden">
               <label className="text-sm text-white/80 mb-3 block font-medium">PAN Card <span className="text-red-400">*</span></label>
               <Input
-                placeholder="PAN Number"
+                placeholder="e.g., ABCDE1234F"
                 value={pannumber}
-                onChange={e => setPanNumber(e.target.value)}
-                className="glass border-white/20 text-white placeholder:text-white/40 h-10 mb-3 w-full"
+                onChange={e => {
+                  const val = e.target.value.toUpperCase().slice(0, 10)
+                  setPanNumber(val)
+                  // Only show error when full length is entered
+                  if (val.length === 10) {
+                    const validation = validatePanNumber(val)
+                    setPanError(!validation.valid ? validation.message : '')
+                  } else {
+                    setPanError('')
+                  }
+                }}
+                className={`glass border-white/20 text-white placeholder:text-white/40 h-10 mb-1 w-full ${panError ? 'border-red-500' : ''}`}
               />
+              {panError && <p className="text-red-400 text-xs mb-2">{panError}</p>}
+              {!panError && <div className="mb-2" />}
               {panimage ? (
                 <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg w-full overflow-hidden">
                   <FileText className="w-4 h-4 text-amber-500 flex-shrink-0" />
