@@ -38,26 +38,16 @@ export default function FileDropzone({ onFilesSelected, maxFiles = 5, existingCo
         if (acceptedFiles.length === 0) return
       }
 
-      // Calculate total files after adding new ones
-      const totalAfterAdd = files.length + acceptedFiles.length + existingCount
+      // Calculate remaining slots and check if selection exceeds limit
+      const canAdd = maxFiles - existingCount - files.length
       
-      if (totalAfterAdd > maxFiles) {
-        const canAdd = maxFiles - existingCount - files.length
+      if (acceptedFiles.length > canAdd) {
         if (canAdd <= 0) {
           alert(`Maximum ${maxFiles} files allowed. You already have ${existingCount + files.length} file(s).`)
-          return
+        } else {
+          alert(`You selected ${acceptedFiles.length} files but only ${canAdd} more can be added. Please select ${canAdd} or fewer files.`)
         }
-        
-        // Get files that will be kept vs ignored
-        const keptFiles = acceptedFiles.slice(0, canAdd)
-        const ignoredFiles = acceptedFiles.slice(canAdd)
-        
-        const keptNames = keptFiles.map(f => f.name).join(', ')
-        const ignoredNames = ignoredFiles.map(f => f.name).join(', ')
-        
-        alert(`Maximum ${maxFiles} files allowed. Only ${canAdd} file(s) added:\n\n✓ Kept: ${keptNames}\n\n✗ Ignored: ${ignoredNames}`)
-        
-        acceptedFiles = keptFiles
+        return
       }
       
       // Add preview URLs for images and accumulate with existing files

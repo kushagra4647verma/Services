@@ -180,6 +180,7 @@ export default function RestaurantForm({
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [savingProgress, setSavingProgress] = useState(false)
+  const [savingNextStep, setSavingNextStep] = useState(false)
   const [saveStatus, setSaveStatus] = useState("idle") // "idle" | "saved" | "unsaved"
   const [createdRestaurantId, setCreatedRestaurantId] = useState(editRestaurant?.id || null)
 
@@ -516,31 +517,50 @@ export default function RestaurantForm({
         setCreatedRestaurantId(restaurantId)
       }
 
-      // Step 2: Upload branding images
+      // Step 2: Upload branding images in parallel
       let newLogoUrl = logoImage
       let newCoverUrl = coverImage
       let newGalleryUrls = [...gallery]
+      let newMenuPics = [...foodMenuPics]
+
+      const brandingUploads = []
 
       if (logoFiles.length > 0) {
-        newLogoUrl = await uploadSingleFile(restaurantId, logoFiles[0], "logo")
-        setLogoImage(newLogoUrl)
+        brandingUploads.push(
+          uploadSingleFile(restaurantId, logoFiles[0], "logo").then(url => {
+            newLogoUrl = url
+            setLogoImage(url)
+          })
+        )
       }
       if (coverFiles.length > 0) {
-        newCoverUrl = await uploadSingleFile(restaurantId, coverFiles[0], "cover")
-        setCoverImage(newCoverUrl)
+        brandingUploads.push(
+          uploadSingleFile(restaurantId, coverFiles[0], "cover").then(url => {
+            newCoverUrl = url
+            setCoverImage(url)
+          })
+        )
       }
       if (galleryFiles.length > 0) {
-        const uploadedGallery = await uploadRestaurantFiles(restaurantId, galleryFiles, "gallery")
-        newGalleryUrls = [...newGalleryUrls, ...uploadedGallery]
-        setGallery(newGalleryUrls)
+        brandingUploads.push(
+          uploadRestaurantFiles(restaurantId, galleryFiles, "gallery").then(uploadedGallery => {
+            newGalleryUrls = [...newGalleryUrls, ...uploadedGallery]
+            setGallery(newGalleryUrls)
+          })
+        )
+      }
+      if (menuFiles.length > 0) {
+        brandingUploads.push(
+          uploadRestaurantFiles(restaurantId, menuFiles, "menus").then(uploadedMenus => {
+            newMenuPics = [...newMenuPics, ...uploadedMenus]
+            setFoodMenuPics(newMenuPics)
+          })
+        )
       }
 
-      // Step 3: Details & menu
-      let newMenuPics = [...foodMenuPics]
-      if (menuFiles.length > 0) {
-        const uploadedMenus = await uploadRestaurantFiles(restaurantId, menuFiles, "menus")
-        newMenuPics = [...newMenuPics, ...uploadedMenus]
-        setFoodMenuPics(newMenuPics)
+      // Wait for all branding uploads to complete
+      if (brandingUploads.length > 0) {
+        await Promise.all(brandingUploads)
       }
 
       // Update restaurant with all details
@@ -564,36 +584,59 @@ export default function RestaurantForm({
       })
       onRestaurantUpdated?.(updated)
 
-      // Step 5: Legal info
+      // Step 5: Legal info - upload documents in parallel
       let newFssaiCerts = [...fssaicertificate]
       let newGstCert = gstcertificate
       let newPanImg = panimage
       let newBbmpLic = bbmptradelicense
       let newLiquorLic = liquorlicense
 
+      const legalUploads = []
+
       if (fssaiCertFiles.length > 0) {
-        // Upload all new FSSAI certificate files and append to existing
-        const uploadedFssaiCerts = await Promise.all(
-          fssaiCertFiles.map(file => uploadSingleFile(restaurantId, file, "legal/fssai"))
+        legalUploads.push(
+          Promise.all(fssaiCertFiles.map(file => uploadSingleFile(restaurantId, file, "legal/fssai"))).then(uploadedFssaiCerts => {
+            newFssaiCerts = [...newFssaiCerts, ...uploadedFssaiCerts]
+            setFssaiCertificate(newFssaiCerts)
+          })
         )
-        newFssaiCerts = [...newFssaiCerts, ...uploadedFssaiCerts]
-        setFssaiCertificate(newFssaiCerts)
       }
       if (gstCertFiles.length > 0) {
-        newGstCert = await uploadSingleFile(restaurantId, gstCertFiles[0], "legal/gst")
-        setGstCertificate(newGstCert)
+        legalUploads.push(
+          uploadSingleFile(restaurantId, gstCertFiles[0], "legal/gst").then(url => {
+            newGstCert = url
+            setGstCertificate(url)
+          })
+        )
       }
       if (panImageFiles.length > 0) {
-        newPanImg = await uploadSingleFile(restaurantId, panImageFiles[0], "legal/pan")
-        setPanImage(newPanImg)
+        legalUploads.push(
+          uploadSingleFile(restaurantId, panImageFiles[0], "legal/pan").then(url => {
+            newPanImg = url
+            setPanImage(url)
+          })
+        )
       }
       if (bbmpLicenseFiles.length > 0) {
-        newBbmpLic = await uploadSingleFile(restaurantId, bbmpLicenseFiles[0], "legal/bbmp")
-        setBbmpTradeLicense(newBbmpLic)
+        legalUploads.push(
+          uploadSingleFile(restaurantId, bbmpLicenseFiles[0], "legal/bbmp").then(url => {
+            newBbmpLic = url
+            setBbmpTradeLicense(url)
+          })
+        )
       }
       if (hasAlcohol && liquorLicenseFiles.length > 0) {
-        newLiquorLic = await uploadSingleFile(restaurantId, liquorLicenseFiles[0], "legal/liquor")
-        setLiquorLicense(newLiquorLic)
+        legalUploads.push(
+          uploadSingleFile(restaurantId, liquorLicenseFiles[0], "legal/liquor").then(url => {
+            newLiquorLic = url
+            setLiquorLicense(url)
+          })
+        )
+      }
+
+      // Wait for all legal uploads to complete
+      if (legalUploads.length > 0) {
+        await Promise.all(legalUploads)
       }
 
       await updateLegalInfo(restaurantId, {
@@ -680,34 +723,54 @@ export default function RestaurantForm({
         setCreatedRestaurantId(restaurantId)
       }
 
-      // Upload any files that have been selected
+      // Upload branding files in parallel for better performance
       let newLogoUrl = logoImage
       let newCoverUrl = coverImage
       let newGalleryUrls = [...gallery]
+      let newMenuPics = [...foodMenuPics]
 
+      const brandingUploads = []
+      
       if (logoFiles.length > 0) {
-        newLogoUrl = await uploadSingleFile(restaurantId, logoFiles[0], "logo")
-        setLogoImage(newLogoUrl)
-        setLogoFiles([])
+        brandingUploads.push(
+          uploadSingleFile(restaurantId, logoFiles[0], "logo").then(url => {
+            newLogoUrl = url
+            setLogoImage(url)
+            setLogoFiles([])
+          })
+        )
       }
       if (coverFiles.length > 0) {
-        newCoverUrl = await uploadSingleFile(restaurantId, coverFiles[0], "cover")
-        setCoverImage(newCoverUrl)
-        setCoverFiles([])
+        brandingUploads.push(
+          uploadSingleFile(restaurantId, coverFiles[0], "cover").then(url => {
+            newCoverUrl = url
+            setCoverImage(url)
+            setCoverFiles([])
+          })
+        )
       }
       if (galleryFiles.length > 0) {
-        const uploadedGallery = await uploadRestaurantFiles(restaurantId, galleryFiles, "gallery")
-        newGalleryUrls = [...newGalleryUrls, ...uploadedGallery]
-        setGallery(newGalleryUrls)
-        setGalleryFiles([])
+        brandingUploads.push(
+          uploadRestaurantFiles(restaurantId, galleryFiles, "gallery").then(uploadedGallery => {
+            newGalleryUrls = [...newGalleryUrls, ...uploadedGallery]
+            setGallery(newGalleryUrls)
+            setGalleryFiles([])
+          })
+        )
+      }
+      if (menuFiles.length > 0) {
+        brandingUploads.push(
+          uploadRestaurantFiles(restaurantId, menuFiles, "menus").then(uploadedMenus => {
+            newMenuPics = [...newMenuPics, ...uploadedMenus]
+            setFoodMenuPics(newMenuPics)
+            setMenuFiles([])
+          })
+        )
       }
 
-      let newMenuPics = [...foodMenuPics]
-      if (menuFiles.length > 0) {
-        const uploadedMenus = await uploadRestaurantFiles(restaurantId, menuFiles, "menus")
-        newMenuPics = [...newMenuPics, ...uploadedMenus]
-        setFoodMenuPics(newMenuPics)
-        setMenuFiles([])
+      // Wait for all branding uploads to complete in parallel
+      if (brandingUploads.length > 0) {
+        await Promise.all(brandingUploads)
       }
 
       // Update restaurant with all current data
@@ -730,40 +793,64 @@ export default function RestaurantForm({
         iscomplete: isComplete
       })
 
-      // Upload legal documents if any
+      // Upload legal documents in parallel for better performance
       let newFssaiCerts = [...fssaicertificate]
       let newGstCert = gstcertificate
       let newPanImg = panimage
       let newBbmpLic = bbmptradelicense
       let newLiquorLic = liquorlicense
 
+      const legalUploads = []
+
       if (fssaiCertFiles.length > 0) {
-        const uploadedFssaiCerts = await Promise.all(
-          fssaiCertFiles.map(file => uploadSingleFile(restaurantId, file, "legal/fssai"))
+        legalUploads.push(
+          Promise.all(fssaiCertFiles.map(file => uploadSingleFile(restaurantId, file, "legal/fssai"))).then(uploadedFssaiCerts => {
+            newFssaiCerts = [...newFssaiCerts, ...uploadedFssaiCerts]
+            setFssaiCertificate(newFssaiCerts)
+            setFssaiCertFiles([])
+          })
         )
-        newFssaiCerts = [...newFssaiCerts, ...uploadedFssaiCerts]
-        setFssaiCertificate(newFssaiCerts)
-        setFssaiCertFiles([])
       }
       if (gstCertFiles.length > 0) {
-        newGstCert = await uploadSingleFile(restaurantId, gstCertFiles[0], "legal/gst")
-        setGstCertificate(newGstCert)
-        setGstCertFiles([])
+        legalUploads.push(
+          uploadSingleFile(restaurantId, gstCertFiles[0], "legal/gst").then(url => {
+            newGstCert = url
+            setGstCertificate(url)
+            setGstCertFiles([])
+          })
+        )
       }
       if (panImageFiles.length > 0) {
-        newPanImg = await uploadSingleFile(restaurantId, panImageFiles[0], "legal/pan")
-        setPanImage(newPanImg)
-        setPanImageFiles([])
+        legalUploads.push(
+          uploadSingleFile(restaurantId, panImageFiles[0], "legal/pan").then(url => {
+            newPanImg = url
+            setPanImage(url)
+            setPanImageFiles([])
+          })
+        )
       }
       if (bbmpLicenseFiles.length > 0) {
-        newBbmpLic = await uploadSingleFile(restaurantId, bbmpLicenseFiles[0], "legal/bbmp")
-        setBbmpTradeLicense(newBbmpLic)
-        setBbmpLicenseFiles([])
+        legalUploads.push(
+          uploadSingleFile(restaurantId, bbmpLicenseFiles[0], "legal/bbmp").then(url => {
+            newBbmpLic = url
+            setBbmpTradeLicense(url)
+            setBbmpLicenseFiles([])
+          })
+        )
       }
       if (hasAlcohol && liquorLicenseFiles.length > 0) {
-        newLiquorLic = await uploadSingleFile(restaurantId, liquorLicenseFiles[0], "legal/liquor")
-        setLiquorLicense(newLiquorLic)
-        setLiquorLicenseFiles([])
+        legalUploads.push(
+          uploadSingleFile(restaurantId, liquorLicenseFiles[0], "legal/liquor").then(url => {
+            newLiquorLic = url
+            setLiquorLicense(url)
+            setLiquorLicenseFiles([])
+          })
+        )
+      }
+
+      // Wait for all legal uploads to complete in parallel
+      if (legalUploads.length > 0) {
+        await Promise.all(legalUploads)
       }
 
       // Save legal info if any fields are filled
@@ -821,8 +908,13 @@ export default function RestaurantForm({
     
     // Auto-save silently if restaurant name is provided
     if (name.trim()) {
-      await performSave({ silent: true })
-      setSaveStatus("saved")
+      setSavingNextStep(true)
+      try {
+        await performSave({ silent: true })
+        setSaveStatus("saved")
+      } finally {
+        setSavingNextStep(false)
+      }
     }
     
     if (currentStep < 7) {
@@ -1614,10 +1706,11 @@ export default function RestaurantForm({
         {currentStep < 7 ? (
           <Button
             onClick={handleNextStep}
-            className="flex-1 gradient-amber text-black font-semibold h-12 rounded-xl hover:opacity-90 transition-opacity"
+            disabled={savingNextStep}
+            className="flex-1 gradient-amber text-black font-semibold h-12 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-70"
           >
-            Next Step
-            <ChevronRight className="w-4 h-4 ml-1" />
+            {savingNextStep ? "Saving..." : "Next Step"}
+            {!savingNextStep && <ChevronRight className="w-4 h-4 ml-1" />}
           </Button>
         ) : (
           <Button
