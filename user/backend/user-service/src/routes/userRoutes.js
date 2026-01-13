@@ -12,11 +12,12 @@ import {
 
 const router = Router()
 
+// More specific routes first
+router.get("/users/me/bookmarks", getMyBookmarks)
 router.get("/users/me", getMyProfile)
 
 router.post("/bookmarks/:restaurantId", addBookmark)
 router.delete("/bookmarks/:restaurantId", removeBookmark)
-router.get("/users/me/bookmarks", getMyBookmarks)
 
 router.post("/diary", createDiaryEntry)
 router.get("/diary", getDiaryEntries)

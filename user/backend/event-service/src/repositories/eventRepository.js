@@ -7,7 +7,7 @@ export async function getUpcomingEvents() {
     .from("restaurantEvents")
     .select("*")
     .gte("date", today)
-    .order("date", { ascending: true })
+    .order("eventDate", { ascending: true })
 
   if (error) throw error
   return data

@@ -9,6 +9,6 @@ const router = Router()
 
 router.post("/friends/:friendId", addFriend)
 router.delete("/friends/:friendId", removeFriend)
-router.get("/users/me/friends", getMyFriends)
+router.get("/friends", getMyFriends)
 
 export default router
