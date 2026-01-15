@@ -1002,6 +1002,62 @@ export default function RestaurantForm({
     }
   }
 
+  // Helper to toggle tags (cuisine / amenities)
+  function toggleTag(tag, currentList, setList) {
+    setList(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    )
+  }
+
+  // Example minimal delete handler (you'll want to improve this)
+  async function handleDeleteFile(url, currentList, setList, isArray = false) {
+    if (!confirm("Delete this file?")) return
+
+    try {
+      // Extract path from public URL (adjust if your URLs are different)
+      const path = url.split('/test2/')[1]
+      if (path) {
+        await supabase.storage.from('test2').remove([path])
+      }
+
+      if (isArray) {
+        const updated = currentList.filter(item => item !== url)
+        setList(updated)
+        if (createdRestaurantId) {
+          await updateRestaurant(createdRestaurantId, {
+            gallery: updated   // or foodMenuPics, etc. — make dynamic if needed
+          })
+        }
+      } else {
+        setList(null)
+        // You may want to update restaurant too
+      }
+    } catch (err) {
+      console.error("Delete failed:", err)
+      alert("Could not delete file")
+    }
+  }
+
+  // Add this — it was missing
+  async function handleNextStep() {
+    // Validate current step if mandatory
+    if (MANDATORY_STEPS.includes(currentStep) && !validateStep(currentStep)) {
+      return
+    }
+
+    setSavingNextStep(true)
+    try {
+      const success = await performSave({ silent: true })
+      if (success) {
+        setCurrentStep(prev => Math.min(prev + 1, 7))
+      }
+    } finally {
+      setSavingNextStep(false)
+    }
+  }
+
   // Render step content
   function renderStepContent() {
     switch (currentStep) {
