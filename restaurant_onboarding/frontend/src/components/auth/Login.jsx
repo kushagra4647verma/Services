@@ -435,7 +435,7 @@ export default function Login({ onLogin }) {
         </div>
 
         <p className="text-white/40 text-xs text-center mt-6">
-          By continuing, you agree to SipZy's Terms of Service and Privacy Policy
+          By continuing you agree to SipZy's Terms of Service and Privacy Policy
         </p>
       </div>
     </div>
