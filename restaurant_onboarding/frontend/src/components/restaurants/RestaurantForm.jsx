@@ -961,23 +961,40 @@ export default function RestaurantForm({
   // Update opening hours for a specific day
   // Add a new time slot to a specific day
   function addTimeSlot(dayIndex) {
-    const newHours = [...openingHours]
-    newHours[dayIndex].timeSlots.push({ openTime: "09:00", closeTime: "22:00" })
-    setOpeningHours(newHours)
+    setOpeningHours(prev =>
+      prev.map((day, i) =>
+        i === dayIndex
+          ? { ...day, timeSlots: [...(day.timeSlots || []), { openTime: "09:00", closeTime: "22:00" }] }
+          : day
+      )
+    );
   }
 
   // Remove a time slot from a specific day
   function removeTimeSlot(dayIndex, slotIndex) {
-    const newHours = [...openingHours]
-    newHours[dayIndex].timeSlots.splice(slotIndex, 1)
-    setOpeningHours(newHours)
+    setOpeningHours(prev =>
+      prev.map((day, i) =>
+        i === dayIndex
+          ? { ...day, timeSlots: day.timeSlots.filter((_, idx) => idx !== slotIndex) }
+          : day
+      )
+    );
   }
 
   // Update a specific time slot
   function updateTimeSlot(dayIndex, slotIndex, field, value) {
-    const newHours = [...openingHours]
-    newHours[dayIndex].timeSlots[slotIndex][field] = value
-    setOpeningHours(newHours)
+    setOpeningHours(prev =>
+      prev.map((day, i) =>
+        i === dayIndex
+          ? {
+              ...day,
+              timeSlots: day.timeSlots.map((slot, idx) =>
+                idx === slotIndex ? { ...slot, [field]: value } : slot
+              )
+            }
+          : day
+      )
+    );
   }
 
   // Tag toggle helpers
@@ -1283,16 +1300,14 @@ export default function RestaurantForm({
                   <Badge
                     key={option}
                     variant="outline"
-                    className={`cursor-pointer transition-colors px-3 py-1.5 text-sm ${
+                    className={`cursor-pointer px-3 py-1.5 text-sm transition-colors ${
                       cuisineTags.includes(option)
                         ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
                         : "bg-white/5 text-white/50 border-white/20 hover:bg-white/10"
                     }`}
                     onClick={() =>
                       setCuisineTags((prev) =>
-                        prev.includes(option)
-                          ? prev.filter((t) => t !== option)
-                          : [...prev, option]
+                        prev.includes(option) ? prev.filter(t => t !== option) : [...prev, option]
                       )
                     }
                   >
@@ -1301,9 +1316,7 @@ export default function RestaurantForm({
                 ))}
               </div>
               {cuisineTags.length === 0 && (
-                <p className="text-amber-400/80 text-xs mt-3">
-                  Please select at least one cuisine
-                </p>
+                <p className="text-amber-400/80 text-xs mt-3">Please select at least one cuisine</p>
               )}
             </div>
 
