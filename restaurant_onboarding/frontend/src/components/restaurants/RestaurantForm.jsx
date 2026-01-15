@@ -249,6 +249,19 @@ export default function RestaurantForm({
   const [hasReservation, setHasReservation] = useState(editRestaurant?.hasReservation || false)
   const [reservationLink, setReservationLink] = useState(editRestaurant?.reservationLink || "")
   const [openingHours, setOpeningHours] = useState(parseOpeningHours(editRestaurant?.openingHours))
+  useEffect(() => {
+    setOpeningHours(prev => 
+      prev.map(day => {
+        if (!day.isClosed && (!day.timeSlots || day.timeSlots.length === 0)) {
+          return {
+            ...day,
+            timeSlots: [{ openTime: "09:00", closeTime: "22:00" }]
+          };
+        }
+        return day;
+      })
+    );
+  }, []);
   const [hasAlcohol, setHasAlcohol] = useState(editRestaurant?.hasAlcohol || false)
 
   // Step 4: Social Links
