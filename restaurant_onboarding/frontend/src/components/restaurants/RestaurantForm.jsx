@@ -1284,72 +1284,95 @@ export default function RestaurantForm({
                 <tr key={dayInfo.day} className="border-b border-white/5 last:border-0">
                   <td className="p-3 font-medium text-white">{dayInfo.day}</td>
                   <td className="p-3 align-top">
-                    {!dayInfo.isClosed && (
+                    {dayInfo.isClosed ? (
+                      <span className="text-red-400/80 text-sm">Closed</span>
+                    ) : (
                       <div className="space-y-2 max-w-md">
-                        {dayInfo.timeSlots?.map((slot, slotIdx) => {
-                          const showNextDay = isNextDayClosing(slot.openTime, slot.closeTime)
-                          return (
-                            <div key={slotIdx} className="flex items-center gap-2">
-                              <Input
-                                type="time"
-                                value={slot.openTime}
-                                onChange={e => updateTimeSlot(dayIdx, slotIdx, "openTime", e.target.value)}
-                                className="glass border-white/20 text-white h-9 text-sm w-24"
-                              />
-                              <span className="text-white/50">-</span>
-                              <Input
-                                type="time"
-                                value={slot.closeTime}
-                                onChange={e => updateTimeSlot(dayIdx, slotIdx, "closeTime", e.target.value)}
-                                className="glass border-white/20 text-white h-9 text-sm w-24"
-                              />
-                              {showNextDay && (
-                                <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded" title="Closes next day">
-                                  +1
-                                </span>
-                              )}
-                              {dayInfo.timeSlots.length > 1 && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => removeTimeSlot(dayIdx, slotIdx)}
-                                  className="h-7 w-7 p-0 text-red-400 hover:bg-red-500/20"
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              )}
-                            </div>
-                          )
-                        })}
+                        {/* Show slots if they exist, or show placeholder/empty state */}
+                        {dayInfo.timeSlots?.length > 0 ? (
+                          dayInfo.timeSlots.map((slot, slotIdx) => {
+                            const showNextDay = isNextDayClosing(slot.openTime, slot.closeTime);
+                            return (
+                              <div key={slotIdx} className="flex items-center gap-2">
+                                <Input
+                                  type="time"
+                                  value={slot.openTime}
+                                  onChange={e => updateTimeSlot(dayIdx, slotIdx, "openTime", e.target.value)}
+                                  className="glass border-white/20 text-white h-9 text-sm w-24"
+                                />
+                                <span className="text-white/50">-</span>
+                                <Input
+                                  type="time"
+                                  value={slot.closeTime}
+                                  onChange={e => updateTimeSlot(dayIdx, slotIdx, "closeTime", e.target.value)}
+                                  className="glass border-white/20 text-white h-9 text-sm w-24"
+                                />
+                                {showNextDay && (
+                                  <span
+                                    className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded"
+                                    title="Closes next day"
+                                  >
+                                    +1
+                                  </span>
+                                )}
+                                {dayInfo.timeSlots.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => removeTimeSlot(dayIdx, slotIdx)}
+                                    className="h-7 w-7 p-0 text-red-400 hover:bg-red-500/20"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          // Optional: show a small hint when no slots yet (helps UX)
+                          <div className="text-white/50 text-sm py-1">
+                            No time slots added yet — click "Add Slot" below
+                          </div>
+                        )}
+
+                        {/* Always visible when day is open */}
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
                           onClick={() => addTimeSlot(dayIdx)}
-                          className="h-7 text-amber-400 hover:bg-amber-500/20 flex items-center gap-1"
+                          className="h-7 text-amber-400 hover:bg-amber-500/20 flex items-center gap-1 mt-1"
                         >
                           <Plus className="w-3 h-3" />
                           Add Slot
                         </Button>
                       </div>
                     )}
-                    {dayInfo.isClosed && (
-                      <span className="text-red-400/80 text-sm">Closed</span>
-                    )}
                   </td>
                   <td className="p-3 text-center align-top">
                     <Checkbox
                       checked={dayInfo.isClosed}
                       onCheckedChange={checked => {
-                        const newHours = [...openingHours]
-                        newHours[dayIdx].isClosed = checked
-                        if (checked) {
-                          newHours[dayIdx].timeSlots = []
-                        } else if (newHours[dayIdx].timeSlots.length === 0) {
-                          newHours[dayIdx].timeSlots = [{ openTime: "09:00", closeTime: "22:00" }]
-                        }
-                        setOpeningHours(newHours)
+                        setOpeningHours(prev => {
+                          const newHours = [...prev];
+                          const day = { ...newHours[dayIdx] }; // deep copy the day object
+
+                          day.isClosed = checked;
+
+                          if (checked) {
+                            // Closing → clear all slots
+                            day.timeSlots = [];
+                          } else {
+                            // Opening → guarantee at least one slot
+                            if (!day.timeSlots || day.timeSlots.length === 0) {
+                              day.timeSlots = [{ openTime: "09:00", closeTime: "22:00" }];
+                            }
+                          }
+
+                          newHours[dayIdx] = day;
+                          return newHours;
+                        });
                       }}
                       className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
                     />
@@ -1371,67 +1394,90 @@ export default function RestaurantForm({
                   <Checkbox
                     checked={dayInfo.isClosed}
                     onCheckedChange={checked => {
-                      const newHours = [...openingHours]
-                      newHours[dayIdx].isClosed = checked
-                      if (checked) {
-                        newHours[dayIdx].timeSlots = []
-                      } else if (newHours[dayIdx].timeSlots.length === 0) {
-                        newHours[dayIdx].timeSlots = [{ openTime: "09:00", closeTime: "22:00" }]
-                      }
-                      setOpeningHours(newHours)
+                      setOpeningHours(prev => {
+                        const newHours = [...prev];
+                        const day = { ...newHours[dayIdx] }; // deep copy the day object
+
+                        day.isClosed = checked;
+
+                        if (checked) {
+                          // Closing → clear all slots
+                          day.timeSlots = [];
+                        } else {
+                          // Opening → guarantee at least one slot
+                          if (!day.timeSlots || day.timeSlots.length === 0) {
+                            day.timeSlots = [{ openTime: "09:00", closeTime: "22:00" }];
+                          }
+                        }
+
+                        newHours[dayIdx] = day;
+                        return newHours;
+                      });
                     }}
                     className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
                   />
                 </div>
               </div>
-              {!dayInfo.isClosed && (
+              {dayInfo.isClosed ? (
+                <div className="text-red-400/80 text-xs text-center py-2">Closed on this day</div>
+              ) : (
                 <div className="space-y-2">
-                  {dayInfo.timeSlots?.map((slot, slotIdx) => {
-                    const showNextDay = isNextDayClosing(slot.openTime, slot.closeTime)
-                    return (
-                      <div key={slotIdx} className="space-y-2">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-white/50 text-xs mb-1 block">Open</label>
-                            <Input
-                              type="time"
-                              value={slot.openTime}
-                              onChange={e => updateTimeSlot(dayIdx, slotIdx, "openTime", e.target.value)}
-                              className="glass border-white/20 text-white h-9 text-sm w-full"
-                            />
+                  {dayInfo.timeSlots?.length > 0 ? (
+                    dayInfo.timeSlots.map((slot, slotIdx) => {
+                      const showNextDay = isNextDayClosing(slot.openTime, slot.closeTime);
+                      return (
+                        <div key={slotIdx} className="space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-white/50 text-xs mb-1 block">Open</label>
+                              <Input
+                                type="time"
+                                value={slot.openTime}
+                                onChange={e => updateTimeSlot(dayIdx, slotIdx, "openTime", e.target.value)}
+                                className="glass border-white/20 text-white h-9 text-sm w-full"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-white/50 text-xs mb-1 block flex items-center gap-1">
+                                Close
+                                {showNextDay && (
+                                  <span
+                                    className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded"
+                                    title="Closes next day"
+                                  >
+                                    +1
+                                  </span>
+                                )}
+                              </label>
+                              <Input
+                                type="time"
+                                value={slot.closeTime}
+                                onChange={e => updateTimeSlot(dayIdx, slotIdx, "closeTime", e.target.value)}
+                                className="glass border-white/20 text-white h-9 text-sm w-full"
+                              />
+                            </div>
                           </div>
-                          <div>
-                            <label className="text-white/50 text-xs mb-1 block flex items-center gap-1">
-                              Close
-                              {showNextDay && (
-                                <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded" title="Closes next day">
-                                  +1
-                                </span>
-                              )}
-                            </label>
-                            <Input
-                              type="time"
-                              value={slot.closeTime}
-                              onChange={e => updateTimeSlot(dayIdx, slotIdx, "closeTime", e.target.value)}
-                              className="glass border-white/20 text-white h-9 text-sm w-full"
-                            />
-                          </div>
+                          {dayInfo.timeSlots.length > 1 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeTimeSlot(dayIdx, slotIdx)}
+                              className="w-full h-8 text-red-400 hover:bg-red-500/20 text-xs"
+                            >
+                              <X className="w-3 h-3 mr-1" />
+                              Remove Slot {slotIdx + 1}
+                            </Button>
+                          )}
                         </div>
-                        {dayInfo.timeSlots.length > 1 && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => removeTimeSlot(dayIdx, slotIdx)}
-                            className="w-full h-8 text-red-400 hover:bg-red-500/20 text-xs"
-                          >
-                            <X className="w-3 h-3 mr-1" />
-                            Remove Slot {slotIdx + 1}
-                          </Button>
-                        )}
-                      </div>
-                    )
-                  })}
+                      );
+                    })
+                  ) : (
+                    <div className="text-white/50 text-xs py-2 text-center">
+                      No time slots yet — add one below
+                    </div>
+                  )}
+
                   <Button
                     type="button"
                     size="sm"
