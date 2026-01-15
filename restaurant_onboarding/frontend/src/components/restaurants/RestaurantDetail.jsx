@@ -22,7 +22,6 @@ function formatPriceRange(value) {
   return map[value] || value
 }
 
-
 // Migrate old format to new timeSlots format if needed
 function migrateToTimeSlots(hours) {
   if (!Array.isArray(hours)) return null
@@ -42,14 +41,27 @@ function migrateToTimeSlots(hours) {
   })
 }
 
-// Parse and format opening hours JSON
+// Parse and format opening hours - handles both JSON string and array
 function parseOpeningHours(hoursData) {
   if (!hoursData) return null
+  
   try {
-    const hours = typeof hoursData === 'string' ? JSON.parse(hoursData) : hoursData
-    if (Array.isArray(hours)) return migrateToTimeSlots(hours)
+    // If it's already an array, use it directly
+    if (Array.isArray(hoursData)) {
+      return migrateToTimeSlots(hoursData)
+    }
+    
+    // If it's a string, try to parse it as JSON
+    if (typeof hoursData === 'string') {
+      const parsed = JSON.parse(hoursData)
+      if (Array.isArray(parsed)) {
+        return migrateToTimeSlots(parsed)
+      }
+    }
+    
     return null
-  } catch {
+  } catch (error) {
+    console.error("Error parsing opening hours:", error)
     return null
   }
 }
@@ -337,7 +349,8 @@ export default function RestaurantDetail({
                     </div>
                   )
                 } else {
-                  return <p className="text-white/60 text-sm whitespace-pre-line">{restaurant.openingHours}</p>
+                  // Fallback for any other format
+                  return <p className="text-white/60 text-sm">No hours available</p>
                 }
               })()}
             </div>
