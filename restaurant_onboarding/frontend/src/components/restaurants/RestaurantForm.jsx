@@ -17,7 +17,7 @@ import {
   Store, FileText, MapPin, Upload, X, ChevronRight, ChevronLeft,
   Image, Link2, Phone, Building2, Shield, Landmark, Check, Plus, Clock, UtensilsCrossed, Mail, Globe, Save
 } from "lucide-react"
-
+//ignore this comment
 const STEPS = [
   { id: 1, title: "Basic Info", icon: Store },
   { id: 2, title: "Branding", icon: Image },
