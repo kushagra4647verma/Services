@@ -22,12 +22,32 @@ function formatPriceRange(value) {
   return map[value] || value
 }
 
+
+// Migrate old format to new timeSlots format if needed
+function migrateToTimeSlots(hours) {
+  if (!Array.isArray(hours)) return null
+  
+  return hours.map(day => {
+    if (day.timeSlots !== undefined) {
+      return day
+    }
+    return {
+      day: day.day,
+      isClosed: day.isClosed,
+      timeSlots: day.isClosed ? [] : [{
+        openTime: day.openTime,
+        closeTime: day.closeTime
+      }]
+    }
+  })
+}
+
 // Parse and format opening hours JSON
 function parseOpeningHours(hoursData) {
   if (!hoursData) return null
   try {
     const hours = typeof hoursData === 'string' ? JSON.parse(hoursData) : hoursData
-    if (Array.isArray(hours)) return hours
+    if (Array.isArray(hours)) return migrateToTimeSlots(hours)
     return null
   } catch {
     return null
@@ -289,27 +309,31 @@ export default function RestaurantDetail({
                 const hours = parseOpeningHours(restaurant.openingHours)
                 if (hours && Array.isArray(hours)) {
                   return (
-                    <div className="grid grid-cols-1 gap-1">
-                      {hours.map((dayInfo) => {
-                        const showNextDay = !dayInfo.isClosed && isNextDayClosing(dayInfo.openTime, dayInfo.closeTime)
-                        return (
-                          <div key={dayInfo.day} className="flex items-center justify-between text-sm py-1">
-                            <span className="text-white/70 w-24">{dayInfo.day.slice(0, 3)}</span>
-                            {dayInfo.isClosed ? (
-                              <span className="text-red-400">Closed</span>
-                            ) : (
-                              <span className="text-white/60 flex items-center gap-1">
-                                {formatTime(dayInfo.openTime)} - {formatTime(dayInfo.closeTime)}
-                                {showNextDay && (
-                                  <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded" title="Closes next day">
-                                    +1
-                                  </span>
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        )
-                      })}
+                    <div className="grid grid-cols-1 gap-2">
+                      {hours.map((dayInfo) => (
+                        <div key={dayInfo.day} className="flex items-start justify-between text-sm py-1">
+                          <span className="text-white/70 w-24 flex-shrink-0">{dayInfo.day.slice(0, 3)}</span>
+                          {dayInfo.isClosed ? (
+                            <span className="text-red-400 flex-1">Closed</span>
+                          ) : (
+                            <div className="flex-1 space-y-1">
+                              {dayInfo.timeSlots?.map((slot, idx) => {
+                                const showNextDay = isNextDayClosing(slot.openTime, slot.closeTime)
+                                return (
+                                  <div key={idx} className="text-white/60 flex items-center gap-1">
+                                    {formatTime(slot.openTime)} - {formatTime(slot.closeTime)}
+                                    {showNextDay && (
+                                      <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded ml-1" title="Closes next day">
+                                        +1
+                                      </span>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )
                 } else {

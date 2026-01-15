@@ -87,17 +87,40 @@ function validatePanNumber(value) {
   return { valid: true, message: '' }
 }
 
+// Migrate old format to new timeSlots format if needed
+function migrateToTimeSlots(hours) {
+  if (!Array.isArray(hours)) return getDefaultOpeningHours()
+  
+  return hours.map(day => {
+    // If already in new format (has timeSlots), return as-is
+    if (day.timeSlots !== undefined) {
+      return day
+    }
+    
+    // Convert old format to new format
+    return {
+      day: day.day,
+      isClosed: day.isClosed,
+      timeSlots: day.isClosed ? [] : [{
+        openTime: day.openTime,
+        closeTime: day.closeTime
+      }]
+    }
+  })
+}
+
 // Parse opening hours from JSON or return default
 function parseOpeningHours(hoursData) {
   if (!hoursData) return getDefaultOpeningHours()
   if (typeof hoursData === 'string') {
     try {
-      return JSON.parse(hoursData)
+      const parsed = JSON.parse(hoursData)
+      return migrateToTimeSlots(parsed)
     } catch {
       return getDefaultOpeningHours()
     }
   }
-  return hoursData
+  return migrateToTimeSlots(hoursData)
 }
 
 // Parse location from various formats (object, string, WKB hex, null)
@@ -390,8 +413,8 @@ export default function RestaurantForm({
       alert("Please select a price range")
       return false
     }
-    // Check if at least one day has opening hours
-    const hasOpenDay = openingHours.some(day => !day.isClosed)
+    // Check if at least one day has at least one time slot
+    const hasOpenDay = openingHours.some(day => !day.isClosed && day.timeSlots.length > 0)
     if (!hasOpenDay) {
       alert("At least one day must have opening hours")
       return false
@@ -923,9 +946,24 @@ export default function RestaurantForm({
   }
 
   // Update opening hours for a specific day
-  function updateOpeningHoursDay(dayIndex, field, value) {
+  // Add a new time slot to a specific day
+  function addTimeSlot(dayIndex) {
     const newHours = [...openingHours]
-    newHours[dayIndex] = { ...newHours[dayIndex], [field]: value }
+    newHours[dayIndex].timeSlots.push({ openTime: "09:00", closeTime: "22:00" })
+    setOpeningHours(newHours)
+  }
+
+  // Remove a time slot from a specific day
+  function removeTimeSlot(dayIndex, slotIndex) {
+    const newHours = [...openingHours]
+    newHours[dayIndex].timeSlots.splice(slotIndex, 1)
+    setOpeningHours(newHours)
+  }
+
+  // Update a specific time slot
+  function updateTimeSlot(dayIndex, slotIndex, field, value) {
+    const newHours = [...openingHours]
+    newHours[dayIndex].timeSlots[slotIndex][field] = value
     setOpeningHours(newHours)
   }
 
@@ -1252,108 +1290,178 @@ export default function RestaurantForm({
                   <thead>
                     <tr className="border-b border-white/10">
                       <th className="text-left text-xs text-white/60 p-3 font-medium">Day</th>
-                      <th className="text-left text-xs text-white/60 p-3 font-medium">Open</th>
-                      <th className="text-left text-xs text-white/60 p-3 font-medium">Close</th>
+                      <th className="text-left text-xs text-white/60 p-3 font-medium">Time Slots</th>
                       <th className="text-center text-xs text-white/60 p-3 font-medium">Closed</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {openingHours.map((dayInfo, idx) => {
-                      const showNextDay = !dayInfo.isClosed && isNextDayClosing(dayInfo.openTime, dayInfo.closeTime)
-                      return (
-                        <tr key={dayInfo.day} className={idx < openingHours.length - 1 ? "border-b border-white/5" : ""}>
-                          <td className="p-3 text-white/80 text-sm font-medium">{dayInfo.day}</td>
-                          <td className="p-2">
-                            <Input
-                              type="time"
-                              value={dayInfo.openTime}
-                              onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
-                              disabled={dayInfo.isClosed}
-                              className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
-                            />
-                          </td>
-                          <td className="p-2">
-                            <div className="flex items-center gap-1">
-                              <Input
-                                type="time"
-                                value={dayInfo.closeTime}
-                                onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
-                                disabled={dayInfo.isClosed}
-                                className={`glass border-white/20 text-white h-9 w-28 text-sm ${dayInfo.isClosed ? "opacity-50" : ""}`}
-                              />
-                              {showNextDay && (
-                                <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1.5 py-0.5 rounded" title="Closes next day">
-                                  +1
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="p-3 text-center">
-                            <Checkbox
-                              checked={dayInfo.isClosed}
-                              onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
-                              className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
-                            />
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {openingHours.map((dayInfo, dayIdx) => (
+                      <tr key={dayInfo.day} className={dayIdx < openingHours.length - 1 ? "border-b border-white/5" : ""}>
+                        <td className="p-3 text-white/80 text-sm font-medium align-top">{dayInfo.day}</td>
+                        <td className="p-3 space-y-2">
+                          {!dayInfo.isClosed && dayInfo.timeSlots.map((slot, slotIdx) => {
+                            const showNextDay = isNextDayClosing(slot.openTime, slot.closeTime)
+                            return (
+                              <div key={slotIdx} className="flex items-center gap-2">
+                                <Input
+                                  type="time"
+                                  value={slot.openTime}
+                                  onChange={e => updateTimeSlot(dayIdx, slotIdx, "openTime", e.target.value)}
+                                  className="glass border-white/20 text-white h-9 w-28 text-sm"
+                                />
+                                <span className="text-white/40">-</span>
+                                <Input
+                                  type="time"
+                                  value={slot.closeTime}
+                                  onChange={e => updateTimeSlot(dayIdx, slotIdx, "closeTime", e.target.value)}
+                                  className="glass border-white/20 text-white h-9 w-28 text-sm"
+                                />
+                                {showNextDay && (
+                                  <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1.5 py-0.5 rounded" title="Closes next day">
+                                    +1
+                                  </span>
+                                )}
+                                {dayInfo.timeSlots.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => removeTimeSlot(dayIdx, slotIdx)}
+                                    className="h-7 w-7 p-0 text-red-400 hover:bg-red-500/20"
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            )
+                          })}
+                          {!dayInfo.isClosed && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => addTimeSlot(dayIdx)}
+                              className="h-7 text-amber-400 hover:bg-amber-500/20 flex items-center gap-1"
+                            >
+                              <Plus className="w-3 h-3" />
+                              Add Slot
+                            </Button>
+                          )}
+                          {dayInfo.isClosed && (
+                            <span className="text-red-400/80 text-sm">Closed</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-center align-top">
+                          <Checkbox
+                            checked={dayInfo.isClosed}
+                            onCheckedChange={checked => {
+                              const newHours = [...openingHours]
+                              newHours[dayIdx].isClosed = checked
+                              if (checked) {
+                                newHours[dayIdx].timeSlots = []
+                              } else if (newHours[dayIdx].timeSlots.length === 0) {
+                                newHours[dayIdx].timeSlots = [{ openTime: "09:00", closeTime: "22:00" }]
+                              }
+                              setOpeningHours(newHours)
+                            }}
+                            className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                          />
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
 
               {/* Mobile Card View */}
               <div className="sm:hidden space-y-2">
-                {openingHours.map((dayInfo, idx) => {
-                  const showNextDay = !dayInfo.isClosed && isNextDayClosing(dayInfo.openTime, dayInfo.closeTime)
-                  return (
-                    <div key={dayInfo.day} className="glass rounded-xl border border-white/20 p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-white font-medium text-sm">{dayInfo.day}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-white/50 text-xs">Closed</span>
-                          <Checkbox
-                            checked={dayInfo.isClosed}
-                            onCheckedChange={checked => updateOpeningHoursDay(idx, "isClosed", checked)}
-                            className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
-                          />
-                        </div>
+                {openingHours.map((dayInfo, dayIdx) => (
+                  <div key={dayInfo.day} className="glass rounded-xl border border-white/20 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-medium text-sm">{dayInfo.day}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/50 text-xs">Closed</span>
+                        <Checkbox
+                          checked={dayInfo.isClosed}
+                          onCheckedChange={checked => {
+                            const newHours = [...openingHours]
+                            newHours[dayIdx].isClosed = checked
+                            if (checked) {
+                              newHours[dayIdx].timeSlots = []
+                            } else if (newHours[dayIdx].timeSlots.length === 0) {
+                              newHours[dayIdx].timeSlots = [{ openTime: "09:00", closeTime: "22:00" }]
+                            }
+                            setOpeningHours(newHours)
+                          }}
+                          className="border-white/30 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+                        />
                       </div>
-                      {!dayInfo.isClosed && (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="text-white/50 text-xs mb-1 block">Open</label>
-                            <Input
-                              type="time"
-                              value={dayInfo.openTime}
-                              onChange={e => updateOpeningHoursDay(idx, "openTime", e.target.value)}
-                              className="glass border-white/20 text-white h-9 text-sm w-full"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-white/50 text-xs mb-1 block flex items-center gap-1">
-                              Close
-                              {showNextDay && (
-                                <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded" title="Closes next day">
-                                  +1
-                                </span>
-                              )}
-                            </label>
-                            <Input
-                              type="time"
-                              value={dayInfo.closeTime}
-                              onChange={e => updateOpeningHoursDay(idx, "closeTime", e.target.value)}
-                              className="glass border-white/20 text-white h-9 text-sm w-full"
-                            />
-                          </div>
-                        </div>
-                      )}
-                      {dayInfo.isClosed && (
-                        <div className="text-red-400/80 text-xs text-center py-2">Closed on this day</div>
-                      )}
                     </div>
-                  )
-                })}
+                    {!dayInfo.isClosed && (
+                      <div className="space-y-2">
+                        {dayInfo.timeSlots.map((slot, slotIdx) => {
+                          const showNextDay = isNextDayClosing(slot.openTime, slot.closeTime)
+                          return (
+                            <div key={slotIdx} className="space-y-2">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-white/50 text-xs mb-1 block">Open</label>
+                                  <Input
+                                    type="time"
+                                    value={slot.openTime}
+                                    onChange={e => updateTimeSlot(dayIdx, slotIdx, "openTime", e.target.value)}
+                                    className="glass border-white/20 text-white h-9 text-sm w-full"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-white/50 text-xs mb-1 block flex items-center gap-1">
+                                    Close
+                                    {showNextDay && (
+                                      <span className="text-amber-400 text-xs font-semibold bg-amber-500/20 px-1 py-0.5 rounded" title="Closes next day">
+                                        +1
+                                      </span>
+                                    )}
+                                  </label>
+                                  <Input
+                                    type="time"
+                                    value={slot.closeTime}
+                                    onChange={e => updateTimeSlot(dayIdx, slotIdx, "closeTime", e.target.value)}
+                                    className="glass border-white/20 text-white h-9 text-sm w-full"
+                                  />
+                                </div>
+                              </div>
+                              {dayInfo.timeSlots.length > 1 && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => removeTimeSlot(dayIdx, slotIdx)}
+                                  className="w-full h-8 text-red-400 hover:bg-red-500/20 text-xs"
+                                >
+                                  <X className="w-3 h-3 mr-1" />
+                                  Remove Slot {slotIdx + 1}
+                                </Button>
+                              )}
+                            </div>
+                          )
+                        })}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => addTimeSlot(dayIdx)}
+                          className="w-full h-8 text-amber-400 hover:bg-amber-500/20 text-xs"
+                        >
+                          <Plus className="w-3 h-3 mr-1" />
+                          Add Time Slot
+                        </Button>
+                      </div>
+                    )}
+                    {dayInfo.isClosed && (
+                      <div className="text-red-400/80 text-xs text-center py-2">Closed on this day</div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
