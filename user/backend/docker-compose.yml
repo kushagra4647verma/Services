@@ -1,9 +1,9 @@
 services:
   api-gateway:
     build: ./api-gateway
-    container_name: api-gateway
+    container_name: user-api-gateway
     ports:
-      - "80:4000"        # ONLY public entry
+      - "80:4000" # ONLY public entry
     env_file:
       - .env
     depends_on:
@@ -12,20 +12,21 @@ services:
       - event-service
       - user-service
       - social-service
+      - expert-service # ← ADD THIS
     restart: always
 
   restaurant-service:
     build: ./restaurant-service
-    container_name: restaurant-service
+    container_name: user-restaurant-service
     expose:
-      - "4001"           # internal only
+      - "4001"
     env_file:
       - .env
     restart: always
 
   beverage-service:
     build: ./beverage-service
-    container_name: beverage-service
+    container_name: user-beverage-service
     expose:
       - "4002"
     env_file:
@@ -34,7 +35,7 @@ services:
 
   event-service:
     build: ./event-service
-    container_name: event-service
+    container_name: user-event-service
     expose:
       - "4003"
     env_file:
@@ -43,7 +44,7 @@ services:
 
   user-service:
     build: ./user-service
-    container_name: user-service
+    container_name: user-user-service
     expose:
       - "4004"
     env_file:
@@ -52,9 +53,19 @@ services:
 
   social-service:
     build: ./social-service
-    container_name: social-service
+    container_name: user-social-service
     expose:
       - "4005"
+    env_file:
+      - .env
+    restart: always
+
+  # ← ADD THIS ENTIRE SERVICE
+  expert-service:
+    build: ./expert-service
+    container_name: user-expert-service
+    expose:
+      - "4006"
     env_file:
       - .env
     restart: always
