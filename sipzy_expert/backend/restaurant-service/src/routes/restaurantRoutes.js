@@ -1,5 +1,5 @@
 import { Router } from "express"
-import { expertOnly } from "../middleware/roleMiddleware.js"
+import { expertOrAdminOnly } from "../middleware/roleMiddleware.js"
 import {
   getRestaurant,
   getRestaurantBeverages
@@ -7,7 +7,7 @@ import {
 
 const router = Router()
 
-router.get("/restaurants/:restaurantId", expertOnly, getRestaurant)
-router.get("/restaurants/:restaurantId/beverages", expertOnly, getRestaurantBeverages)
+router.get("/restaurants/:restaurantId", expertOrAdminOnly, getRestaurant)
+router.get("/restaurants/:restaurantId/beverages", expertOrAdminOnly, getRestaurantBeverages)
 
 export default router
